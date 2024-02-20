@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "cyberiadaml-py"
+version = "0.1.0"
+description = ""
+authors = ["L140-beep <kartoshka0302@mail.ru>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.^"
+xmltodict = "^0.13.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
