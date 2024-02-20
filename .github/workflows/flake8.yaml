@@ -20,4 +20,4 @@ jobs:
         pip install flake8
     - name: Running flake8
       run: |
-        flake8 cyberiadaml_py test
+        flake8 cyberiadaml_py tests
