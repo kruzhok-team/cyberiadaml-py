@@ -6,10 +6,11 @@ from typing import List, Optional
 @dataclass
 class CGMLDataNode:
     key: str = Field(alias='@key')
-    x: str | None = Field(default=None, alias='@x')
-    y: str | None = Field(default=None, alias='@y')
-    width: str | None = Field(default=None, alias='@width')
-    height: str | None = Field(default=None, alias='@height')
+    content: Optional[str] = Field(default=None, alias='#text')
+    x: Optional[str] = Field(default=None, alias='@x')
+    y: Optional[str] = Field(default=None, alias='@y')
+    width: Optional[str] = Field(default=None, alias='@width')
+    height: Optional[str] = Field(default=None, alias='@height')
 
 
 @dataclass
@@ -37,16 +38,16 @@ class CGMLEdge:
 class CGMLGraph:
     id: str = Field(alias='@id')
     edgedefault: str = Field(alias='@edgedefault')
-    node: List[CGMLNode] | CGMLNode | None = None
-    edge: List[CGMLEdge] | CGMLEdge | None = None
+    node: Optional[List[CGMLNode] | CGMLNode] = None
+    edge: Optional[List[CGMLEdge] | CGMLEdge] = None
 
 
 @dataclass
 class CGMLGraphml:
     data: CGMLDataNode
     xmlns: str = Field(alias='@xmlns')
-    key: List[CGMLKeyNode] | CGMLKeyNode | None = None
-    graph: List[CGMLGraph] | CGMLGraph | None = None
+    key: Optional[List[CGMLKeyNode] | CGMLKeyNode] = None
+    graph: Optional[List[CGMLGraph] | CGMLGraph] = None
 
 
 @dataclass
