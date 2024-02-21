@@ -1,50 +1,52 @@
-from dataclasses import dataclass
-from typing import List
+from pydantic.dataclasses import dataclass
+from pydantic import Field
+from typing import List, Optional
 
 
 @dataclass
 class CGMLDataNode:
-    _key: str
-    _x: str | None
-    _y: str | None
-    _width: str | None
-    _height: str | None
+    key: str = Field(alias='@key')
+    x: str | None = Field(default=None, alias='@x')
+    y: str | None = Field(default=None, alias='@y')
+    width: str | None = Field(default=None, alias='@width')
+    height: str | None = Field(default=None, alias='@height')
 
 
 @dataclass
 class CGMLKeyNode:
-    _id: str
-    _for: str
-    _attr_name: str
-    _atrr_type: str
+    id: str = Field(alias='@id')
+    for_: str = Field(alias='@for')
+    attr_name: Optional[str] = Field(default=None, alias='@attr.name')
+    attr_type: Optional[str] = Field(default=None, alias='@attr.type')
 
 
 @dataclass
 class CGMLNode:
-    _id: str
-    data: List[CGMLDataNode] | CGMLDataNode | None
+    id: str = Field(alias='@id')
+    data: List[CGMLDataNode] | CGMLDataNode | None = None
 
 
 @dataclass
 class CGMLEdge:
-    _source: str
-    _target: str
-    data: List[CGMLDataNode] | CGMLDataNode | None
+    source: str = Field(alias='@source')
+    target: str = Field(alias='@target')
+    data: Optional[List[CGMLDataNode] | CGMLDataNode] = None
 
 
 @dataclass
 class CGMLGraph:
-    _id: str
-    node: List[CGMLNode] | CGMLNode | None
-    edge: List[CGMLEdge] | CGMLEdge | None
+    id: str = Field(alias='@id')
+    edgedefault: str = Field(alias='@edgedefault')
+    node: List[CGMLNode] | CGMLNode | None = None
+    edge: List[CGMLEdge] | CGMLEdge | None = None
 
 
 @dataclass
 class CGMLGraphml:
-    _xmlns: str
     data: CGMLDataNode
-    key: List[CGMLKeyNode] | CGMLKeyNode | None
-    graph: List[CGMLGraph] | CGMLGraph | None
+    xmlns: str = Field(alias='@xmlns')
+    key: List[CGMLKeyNode] | CGMLKeyNode | None = None
+    graph: List[CGMLGraph] | CGMLGraph | None = None
 
 
 @dataclass
