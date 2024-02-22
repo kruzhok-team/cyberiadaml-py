@@ -1,3 +1,4 @@
+from __future__ import annotations
 from pydantic.dataclasses import dataclass
 from pydantic import Field
 from typing import List, Optional
@@ -22,12 +23,6 @@ class CGMLKeyNode:
 
 
 @dataclass
-class CGMLNode:
-    id: str = Field(alias='@id')
-    data: List[CGMLDataNode] | CGMLDataNode | None = None
-
-
-@dataclass
 class CGMLEdge:
     source: str = Field(alias='@source')
     target: str = Field(alias='@target')
@@ -36,10 +31,17 @@ class CGMLEdge:
 
 @dataclass
 class CGMLGraph:
-    id: str = Field(alias='@id')
-    edgedefault: str = Field(alias='@edgedefault')
-    node: Optional[List[CGMLNode] | CGMLNode] = None
+    edgedefault: Optional[str] = Field(alias='@edgedefault', default=None)
+    id: Optional[str] = Field(alias='@id', default=None)
+    node: Optional[List['CGMLNode'] | 'CGMLNode'] = None
     edge: Optional[List[CGMLEdge] | CGMLEdge] = None
+
+
+@dataclass
+class CGMLNode:
+    id: str = Field(alias='@id')
+    graph: Optional[CGMLGraph | List[CGMLGraph]] = None
+    data: List[CGMLDataNode] | CGMLDataNode | None = None
 
 
 @dataclass

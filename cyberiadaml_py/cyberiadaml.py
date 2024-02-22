@@ -1,10 +1,12 @@
 from xmltodict import parse
+from cyberiadaml_py.types.common import Rectangle
 
-from cyberiadaml_py.types.elements import CGMLElements, AwailableKeys
+from cyberiadaml_py.types.elements import CGMLElements, AwailableKeys, CGMLState
 
 from collections import defaultdict
 from collections.abc import Iterable
-from .types.cgml_schema import CGML
+from .types.cgml_schema import CGML, CGMLGraph
+from typing import Any, List, Dict, Optional
 
 
 class CGMLParserException(Exception):
@@ -29,7 +31,7 @@ class CGMLParser:
 
     def parseCGML(self, graphml: str) -> CGMLElements:
         cgml = CGML(**parse(graphml))
-
+        print(cgml.graphml.graph)
         self.elements.format = self._getFormat(cgml)
 
         if self.elements.format != 'Cyberiada-GraphML':
@@ -39,7 +41,44 @@ class CGMLParser:
 
         self.elements.keys = self._getAwaialbleKeys(cgml)
 
+        graphs: List[CGMLGraph] = self._toList(cgml.graphml.graph)
+        for graph in graphs:
+            print(self._parseGraphNodes(graph))
         return self.elements
+
+    def _toList(self, nodes: List | None | Any) -> List:
+        if nodes is None:
+            return []
+        if isinstance(nodes, list):
+            return nodes
+        else:
+            return [nodes]
+
+    def _parseGraphNodes(self, root: CGMLGraph, parent: Optional[str] = None) -> Dict[str, CGMLState]:
+        cgmlStates: Dict[str, CGMLState] = {}
+        if root.node is not None:
+            if isinstance(root.node, Iterable):
+                for node in root.node:
+                    cgmlStates[node.id] = CGMLState(
+                        name='',
+                        actions='',
+                        unknownDatanodes=self._toList(node.data),
+                        bounds=Rectangle(0, 0, -1, -1),
+                    )
+
+                    if parent is not None:
+                        cgmlStates[node.id].parent = parent
+
+                    graphs: List[CGMLGraph] = self._toList(node.graph)
+
+                    for graph in graphs:
+                        cgmlStates = cgmlStates | self._parseGraphNodes(
+                            graph, node.id)
+
+        return cgmlStates
+
+    def _checkDataNodeKey(self, node_name: str, key: str, awaialableKeys: AwailableKeys) -> bool:
+        return key in awaialableKeys[node_name]
 
     # key nodes to comfortable dict
     def _getAwaialbleKeys(self, cgml: CGML) -> AwailableKeys:
@@ -53,7 +92,7 @@ class CGMLParser:
         return keyNodeDict
 
     def _getFormat(self, cgml: CGML) -> str:
-        # DRY
+        # TODO: DRY
         if isinstance(cgml.graphml.data, Iterable):
             for dataNode in cgml.graphml.data:
                 print(dataNode)
