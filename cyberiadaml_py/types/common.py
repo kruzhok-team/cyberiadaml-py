@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from typing import TypeAlias
+
 
 @dataclass
 class Point:
@@ -13,3 +15,6 @@ class Rectangle:
     y: float
     width: float
     height: float
+
+
+Key: TypeAlias = str

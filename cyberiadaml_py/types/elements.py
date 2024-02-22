@@ -1,8 +1,18 @@
-from dataclasses import dataclass
-from typing import List, Dict
+from pydantic.dataclasses import dataclass
+from typing import (
+    List,
+    Dict,
+    DefaultDict,
+    Optional,
+    TypeAlias
+)
 
-from .cgml_schema import CGMLKeyNode, CGMLDataNode
-from .common import Point
+
+from .cgml_schema import CGMLDataNode
+from .common import Key, Point
+
+#  { node: ['dGeometry', ...], edge: ['dData', ...]}
+AwailableKeys: TypeAlias = DefaultDict[str, List[str]]
 
 
 @dataclass
@@ -17,9 +27,9 @@ class Rectangle:
 class CGMLState:
     name: str
     actions: str
-    parent: str | None
     unknownDatanodes: List[CGMLDataNode]
     bounds: Rectangle
+    parent: Optional[str] = None
 
 
 @dataclass
@@ -30,9 +40,9 @@ class CGMLComponent:
 
 @dataclass
 class CGMLInitialState:
-    position: Point | None
     id: str
     target: str
+    position: Optional[Point] = None
 
 
 @dataclass
@@ -40,8 +50,8 @@ class CGMLTransition:
     source: str
     target: str
     actions: str
-    color: str | None
-    position: Point | None
+    color: Optional[str]
+    position: Optional[Point]
     unknownDatanodes: List[CGMLDataNode]
 
 
@@ -50,8 +60,8 @@ class CGMLElements:
     states: Dict[str, CGMLState]
     transitions: List[CGMLTransition]
     components: List[CGMLComponent]
-    initial_state: CGMLInitialState | None
     platform: str
     meta: str
     format: str
-    keys: List[CGMLKeyNode]
+    keys: AwailableKeys
+    initial_state: Optional[CGMLInitialState] = None

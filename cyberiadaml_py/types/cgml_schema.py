@@ -44,7 +44,7 @@ class CGMLGraph:
 
 @dataclass
 class CGMLGraphml:
-    data: CGMLDataNode
+    data: CGMLDataNode | List[CGMLDataNode]
     xmlns: str = Field(alias='@xmlns')
     key: Optional[List[CGMLKeyNode] | CGMLKeyNode] = None
     graph: Optional[List[CGMLGraph] | CGMLGraph] = None
