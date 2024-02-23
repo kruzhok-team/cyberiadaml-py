@@ -6,7 +6,7 @@ from cyberiadaml_py.types.elements import CGMLElements, AwailableKeys, CGMLState
 
 from collections import defaultdict
 from collections.abc import Iterable
-from .types.cgml_schema import CGML, CGMLEdge, CGMLGraph, CGMLNode
+from .types.cgml_schema import CGML, CGMLDataNode, CGMLEdge, CGMLGraph, CGMLNode
 from typing import Any, List, Dict, Optional
 
 
@@ -44,9 +44,27 @@ class CGMLParser:
         for graph in graphs:
             states = states | self._parseGraphNodes(graph)
             transitions = [*transitions, *self._parseGraphEdges(graph)]
+        try:
+            self.elements.platform, self.elements.meta = self._getMeta(
+                states[''])
+        except KeyError:
+            raise CGMLParserException('Meta node is missing')
         self.elements.transitions = transitions
         self.elements.states = states
         return self.elements
+
+    # return tuple[platfrom, meta]
+    def _getMeta(self, metaNode: CGMLState) -> tuple[str, str]:
+        dataNodes: List[CGMLDataNode] = self._toList(metaNode.unknownDatanodes)
+        platform: str = ''
+        meta: str = ''
+        for dataNode in dataNodes:
+            match dataNode.key:
+                case 'dName':
+                    platform = dataNode.content if dataNode.content is not None else ''
+                case 'dData':
+                    meta = dataNode.content if dataNode.content is not None else ''
+        return platform, meta
 
     def _toList(self, nodes: List | None | Any) -> List:
         if nodes is None:
