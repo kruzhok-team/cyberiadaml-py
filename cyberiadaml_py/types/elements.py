@@ -41,9 +41,9 @@ class CGMLTransition:
     source: str
     target: str
     actions: str
-    color: Optional[str]
-    position: Optional[Point]
     unknownDatanodes: List[CGMLDataNode]
+    color: Optional[str] = None
+    position: Optional[Point] = None
 
 
 @dataclass
