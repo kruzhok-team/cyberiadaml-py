@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 
 
 @dataclass
@@ -13,8 +13,8 @@ class Point:
 class Rectangle:
     x: float
     y: float
-    width: float
-    height: float
+    width: Optional[float] = None
+    height: Optional[float] = None
 
 
 Key: TypeAlias = str

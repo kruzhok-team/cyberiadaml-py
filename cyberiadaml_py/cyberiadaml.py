@@ -1,8 +1,15 @@
 # TODO: organize import
 from xmltodict import parse
-from cyberiadaml_py.types.common import Rectangle
+from cyberiadaml_py.types.common import Point, Rectangle
 
-from cyberiadaml_py.types.elements import CGMLElements, AwailableKeys, CGMLState, CGMLTransition
+from cyberiadaml_py.types.elements import (
+    CGMLElements,
+    AwailableKeys,
+    CGMLInitialState,
+    CGMLNote,
+    CGMLState,
+    CGMLTransition
+)
 
 from collections import defaultdict
 from collections.abc import Iterable
@@ -28,6 +35,7 @@ class CGMLParser:
             format='',
             meta='',
             keys=defaultdict(),
+            notes=[]
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
@@ -41,17 +49,99 @@ class CGMLParser:
         graphs: List[CGMLGraph] = self._toList(cgml.graphml.graph)
         states: Dict[str, CGMLState] = {}
         transitions: List[CGMLTransition] = []
+        notes: List[CGMLNote] = []
         for graph in graphs:
             states = states | self._parseGraphNodes(graph)
             transitions = [*transitions, *self._parseGraphEdges(graph)]
         try:
             self.elements.platform, self.elements.meta = self._getMeta(
                 states[''])
+            del states['']
         except KeyError:
             raise CGMLParserException('Meta node is missing')
+        for stateId in list(states.keys()):
+            state, isInit = self._processStateData(states[stateId])
+            if isinstance(state, CGMLNote):
+                notes.append(state)
+                del states[stateId]
+            elif isinstance(state, CGMLState):
+                if isInit:
+                    position: Point | None = None
+                    if state.bounds is not None:
+                        position = Point(state.bounds.x, state.bounds.y)
+                    self.elements.initial_state = CGMLInitialState(
+                        id=stateId, target='', position=position)
+                    del states[stateId]
+                else:
+                    states[stateId] = state
+            else:
+                raise CGMLParserException('Unknown type of node')
         self.elements.transitions = transitions
         self.elements.states = states
         return self.elements
+
+    def _getDataContent(self, dataNode: CGMLDataNode) -> str:
+        return dataNode.content if dataNode.content is not None else ''
+
+    # tuple[CGMLState | CGMLNote, isInit?]
+    def _processStateData(self, state: CGMLState) -> tuple[CGMLState | CGMLNote, bool]:
+        # no mutations?
+        newState = CGMLState(
+            name=state.name,
+            actions=state.actions,
+            unknownDatanodes=[],
+            bounds=state.bounds,
+            parent=state.parent
+        )
+        isNote: bool = False
+        isInit: bool = False
+        for dataNode in state.unknownDatanodes:
+            match dataNode.key:
+                case 'dName':
+                    newState.name = self._getDataContent(dataNode)
+                case 'dGeometry':
+                    if dataNode.x is None or dataNode.y is None:
+                        raise CGMLParserException(
+                            'Node with key dGeometry doesn\'t have x, y properties')
+                    x: float = float(dataNode.x)
+                    y: float = float(dataNode.y)
+
+                    if dataNode.width is not None and dataNode.height is not None:
+                        newState.bounds = Rectangle(
+                            x=x,
+                            y=y,
+                            width=float(dataNode.width),
+                            height=float(dataNode.height)
+                        )
+                    else:
+                        newState.bounds = Rectangle(
+                            x=x,
+                            y=y
+                        )
+                case 'dData':
+                    newState.actions = self._getDataContent(dataNode)
+                case 'dNote':
+                    isNote = True
+                case 'dInitial':
+                    isInit = True
+                    if isNote:
+                        raise CGMLParserException('dInit in dNote')
+                case _:
+                    newState.unknownDatanodes.append(dataNode)
+        if isNote:
+            bounds: Rectangle | None = newState.bounds
+            if bounds is None:
+                raise CGMLParserException('No position for note!')
+            else:
+                return (CGMLNote(
+                    position=Point(
+                        x=bounds.x,
+                        y=bounds.y,
+                    ),
+                    text=newState.actions,
+                    unknownDatanodes=newState.unknownDatanodes
+                ), False)
+        return (newState, isInit)
 
     # return tuple[platfrom, meta]
     def _getMeta(self, metaNode: CGMLState) -> tuple[str, str]:
@@ -61,9 +151,9 @@ class CGMLParser:
         for dataNode in dataNodes:
             match dataNode.key:
                 case 'dName':
-                    platform = dataNode.content if dataNode.content is not None else ''
+                    platform = self._getDataContent(dataNode)
                 case 'dData':
-                    meta = dataNode.content if dataNode.content is not None else ''
+                    meta = self._getDataContent(dataNode)
         return platform, meta
 
     def _toList(self, nodes: List | None | Any) -> List:
@@ -99,7 +189,6 @@ class CGMLParser:
                 name='',
                 actions='',
                 unknownDatanodes=self._toList(node.data),
-                bounds=Rectangle(0, 0, -1, -1),
             )
             if parent is not None:
                 cgmlStates[node.id].parent = parent

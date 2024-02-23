@@ -19,8 +19,8 @@ class CGMLState:
     name: str
     actions: str
     unknownDatanodes: List[CGMLDataNode]
-    bounds: Rectangle
     parent: Optional[str] = None
+    bounds: Optional[Rectangle] = None
 
 
 @dataclass
@@ -47,6 +47,13 @@ class CGMLTransition:
 
 
 @dataclass
+class CGMLNote:
+    position: Point
+    text: str
+    unknownDatanodes: List[CGMLDataNode]
+
+
+@dataclass
 class CGMLElements:
     states: Dict[str, CGMLState]
     transitions: List[CGMLTransition]
@@ -55,4 +62,5 @@ class CGMLElements:
     meta: str
     format: str
     keys: AwailableKeys
+    notes: List[CGMLNote]
     initial_state: Optional[CGMLInitialState] = None
