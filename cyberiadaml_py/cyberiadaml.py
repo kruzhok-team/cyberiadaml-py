@@ -66,6 +66,8 @@ class CGMLParser:
                 del states[stateId]
             elif isinstance(state, CGMLState):
                 if isInit:
+                    if self.elements.initial_state is not None:
+                        raise CGMLParserException('Double init states')
                     position: Point | None = None
                     if state.bounds is not None:
                         position = Point(state.bounds.x, state.bounds.y)
@@ -76,6 +78,11 @@ class CGMLParser:
                     states[stateId] = state
             else:
                 raise CGMLParserException('Unknown type of node')
+        for i in range(len(transitions)):
+            transitions[i] = self._processEdgeData(transitions[i])
+            if (self.elements.initial_state is not None
+                    and transitions[i].source == self.elements.initial_state.id):
+                self.elements.initial_state.target = transitions[i].target
         self.elements.transitions = transitions
         self.elements.states = states
         return self.elements
@@ -83,8 +90,33 @@ class CGMLParser:
     def _getDataContent(self, dataNode: CGMLDataNode) -> str:
         return dataNode.content if dataNode.content is not None else ''
 
-    # tuple[CGMLState | CGMLNote, isInit?]
+    def _processEdgeData(self, transition: CGMLTransition) -> CGMLTransition:
+        newTransition = CGMLTransition(
+            source=transition.source,
+            target=transition.target,
+            actions=transition.actions,
+            unknownDatanodes=[]
+        )
+        for dataNode in transition.unknownDatanodes:
+            match dataNode.key:
+                case 'dData':
+                    newTransition.actions = self._getDataContent(dataNode)
+                case 'dGeometry':
+                    if dataNode.x is None or dataNode.y is None:
+                        raise CGMLParserException(
+                            'Edge with key dGeometry doesn\'t have x, y properties')
+                    newTransition.position = Point(
+                        float(dataNode.x), float(dataNode.y))
+                case 'dColor':
+                    newTransition.color = self._getDataContent(dataNode)
+                case _:
+                    newTransition.unknownDatanodes.append(dataNode)
+        return newTransition
+
     def _processStateData(self, state: CGMLState) -> tuple[CGMLState | CGMLNote, bool]:
+        """
+        return tuple[CGMLState | CGMLNote, isInit]
+        """
         # no mutations?
         newState = CGMLState(
             name=state.name,
@@ -96,6 +128,10 @@ class CGMLParser:
         isNote: bool = False
         isInit: bool = False
         for dataNode in state.unknownDatanodes:
+            if dataNode.key not in self.elements.keys['node']:
+                raise CGMLParserException(
+                    (f'Unknown key {dataNode.key} for node, did you forgot: '
+                     f'"<key id="{dataNode.key}" for="node"/>"?'))
             match dataNode.key:
                 case 'dName':
                     newState.name = self._getDataContent(dataNode)
@@ -126,6 +162,8 @@ class CGMLParser:
                     isInit = True
                     if isNote:
                         raise CGMLParserException('dInit in dNote')
+                case 'dColor':
+                    newState.color = self._getDataContent(dataNode)
                 case _:
                     newState.unknownDatanodes.append(dataNode)
         if isNote:

@@ -21,6 +21,7 @@ class CGMLState:
     unknownDatanodes: List[CGMLDataNode]
     parent: Optional[str] = None
     bounds: Optional[Rectangle] = None
+    color: Optional[str] = None
 
 
 @dataclass
