@@ -29,7 +29,7 @@ unit/ Autoborder
     <data key="dData">entry/
 exit/
 </data>
-<data key="dmyExtension"> really important information</data>
+<data key="dMyExtension"> really important information</data>
     <data key="dGeometry" x="-578.005" y="438.187256"
           width="672.532166" height="802.962646" />
     <graph>

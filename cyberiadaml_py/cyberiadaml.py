@@ -1,8 +1,8 @@
 # TODO: organize import
 from xmltodict import parse
 from cyberiadaml_py.types.common import Point, Rectangle
-
 from cyberiadaml_py.types.elements import (
+    CGMLComponent,
     CGMLElements,
     AwailableKeys,
     CGMLInitialState,
@@ -78,12 +78,26 @@ class CGMLParser:
                     states[stateId] = state
             else:
                 raise CGMLParserException('Unknown type of node')
+
+        componentIds: List[str] = []
         for i in range(len(transitions)):
             transitions[i] = self._processEdgeData(transitions[i])
             if (self.elements.initial_state is not None
                     and transitions[i].source == self.elements.initial_state.id):
                 self.elements.initial_state.target = transitions[i].target
-        self.elements.transitions = transitions
+            elif transitions[i].source == '':
+                componentIds.append(transitions[i].target)
+            else:
+                self.elements.transitions.append(transitions[i])
+
+        for componentId in componentIds:
+            componentState: CGMLState | None = states.get(componentId)
+            if componentState is None:
+                raise CGMLParserException('Unknown component node')
+            self.elements.components.append(CGMLComponent(
+                id=componentId,
+                parameters=componentState.actions
+            ))  # TODO: raise exception if smth else
         self.elements.states = states
         return self.elements
 
@@ -117,7 +131,7 @@ class CGMLParser:
         """
         return tuple[CGMLState | CGMLNote, isInit]
         """
-        # no mutations?
+        # no mutations? B^)
         newState = CGMLState(
             name=state.name,
             actions=state.actions,
@@ -181,8 +195,10 @@ class CGMLParser:
                 ), False)
         return (newState, isInit)
 
-    # return tuple[platfrom, meta]
     def _getMeta(self, metaNode: CGMLState) -> tuple[str, str]:
+        """
+        return tuple[platfrom, meta]
+        """
         dataNodes: List[CGMLDataNode] = self._toList(metaNode.unknownDatanodes)
         platform: str = ''
         meta: str = ''
@@ -222,7 +238,8 @@ class CGMLParser:
         return cgmlTransitions
 
     def _parseGraphNodes(self, root: CGMLGraph, parent: Optional[str] = None) -> Dict[str, CGMLState]:
-        def parseNode(node: CGMLNode, cgmlStates: Dict[str, CGMLState]) -> None:
+        def parseNode(node: CGMLNode) -> Dict[str, CGMLState]:
+            cgmlStates: Dict[str, CGMLState] = {}
             cgmlStates[node.id] = CGMLState(
                 name='',
                 actions='',
@@ -235,13 +252,15 @@ class CGMLParser:
                 cgmlStates = cgmlStates | self._parseGraphNodes(
                     graph, node.id)
 
+            return cgmlStates
+
         cgmlStates: Dict[str, CGMLState] = {}
         if root.node is not None:
             if isinstance(root.node, Iterable):
                 for node in root.node:
-                    parseNode(node, cgmlStates)
+                    cgmlStates = cgmlStates | parseNode(node)
             else:
-                parseNode(root.node, cgmlStates)
+                cgmlStates = cgmlStates | parseNode(root.node)
         return cgmlStates
 
     def _checkDataNodeKey(self, node_name: str, key: str, awaialableKeys: AwailableKeys) -> bool:
