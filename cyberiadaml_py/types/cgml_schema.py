@@ -1,6 +1,5 @@
-from __future__ import annotations
 from pydantic.dataclasses import dataclass
-from pydantic import Field, AliasChoices, ConfigDict
+from pydantic import Field, ConfigDict
 from typing import List, Optional
 
 
@@ -47,8 +46,7 @@ class CGMLNode:
 @dataclass(config=ConfigDict(extra='forbid'))
 class CGMLGraphml:
     data: CGMLDataNode | List[CGMLDataNode]
-    xmlns: str = Field(validation_alias=AliasChoices(
-        '@xmlns'))
+    xmlns: str = Field(alias='@xmlns')
     key: Optional[List[CGMLKeyNode] | CGMLKeyNode] = None
     graph: Optional[List[CGMLGraph] | CGMLGraph] = None
 
