@@ -39,7 +39,9 @@ class CGMLParser:
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
-        cgml = CGML(**parse(graphml))
+        a = parse(graphml)
+        print(a)
+        cgml = CGML(**a)
         self.elements.format = self._getFormat(cgml)
         if self.elements.format != 'Cyberiada-GraphML':
             raise CGMLParserException(
@@ -281,7 +283,6 @@ class CGMLParser:
         # TODO: DRY
         if isinstance(cgml.graphml.data, Iterable):
             for dataNode in cgml.graphml.data:
-                print(dataNode)
                 if dataNode.key == 'gFormat':
                     if dataNode.content is not None:
                         return dataNode.content
