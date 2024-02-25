@@ -60,7 +60,7 @@ class CGMLParser:
         except KeyError:
             raise CGMLParserException('Meta node is missing')
         for stateId in list(states.keys()):
-            state, isInit = self._processStateData(states[stateId])
+            state, isInit = self._processStateData(states[stateId], stateId)
             if isinstance(state, CGMLNote):
                 notes.append(state)
                 del states[stateId]
@@ -127,7 +127,7 @@ class CGMLParser:
                     newTransition.unknownDatanodes.append(dataNode)
         return newTransition
 
-    def _processStateData(self, state: CGMLState) -> tuple[CGMLState | CGMLNote, bool]:
+    def _processStateData(self, state: CGMLState, stateId: str) -> tuple[CGMLState | CGMLNote, bool]:
         """
         return tuple[CGMLState | CGMLNote, isInit]
         """
@@ -189,6 +189,7 @@ class CGMLParser:
                 raise CGMLParserException('No position for note!')
             else:
                 return (CGMLNote(
+                    id=stateId,
                     position=Point(
                         x=bounds.x,
                         y=bounds.y,

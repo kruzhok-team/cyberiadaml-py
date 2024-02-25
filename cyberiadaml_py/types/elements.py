@@ -1,4 +1,5 @@
 from pydantic.dataclasses import dataclass
+from pydantic import Field
 from typing import (
     List,
     Dict,
@@ -49,6 +50,7 @@ class CGMLTransition:
 
 @dataclass
 class CGMLNote:
+    id: str = Field(serialization_alias='@id')
     position: Point
     text: str
     unknownDatanodes: List[CGMLDataNode]
