@@ -79,6 +79,7 @@ class CGMLParser:
             else:
                 raise CGMLParserException('Unknown type of node')
 
+        # TODO Вынести в отдельные функции
         componentIds: List[str] = []
         for i in range(len(transitions)):
             transitions[i] = self._processEdgeData(transitions[i])

@@ -1,7 +1,22 @@
 from cyberiadaml_py.cyberiadaml_parser import CGMLParserException
-from cyberiadaml_py.types.cgml_schema import CGML, CGMLDataNode, CGMLGraph, CGMLGraphml, CGMLKeyNode, CGMLNode
+from cyberiadaml_py.types.cgml_schema import (
+    CGML,
+    CGMLDataNode,
+    CGMLEdge,
+    CGMLGraph,
+    CGMLGraphml,
+    CGMLKeyNode,
+    CGMLNode
+)
 from cyberiadaml_py.types.common import Point, Rectangle
-from cyberiadaml_py.types.elements import AwailableKeys, CGMLElements, CGMLInitialState, CGMLNote, CGMLState
+from cyberiadaml_py.types.elements import (
+    AwailableKeys,
+    CGMLElements,
+    CGMLInitialState,
+    CGMLNote,
+    CGMLState,
+    CGMLTransition
+)
 from typing import Iterable, List, Dict
 from xmltodict import unparse
 from pydantic import RootModel
@@ -25,16 +40,19 @@ class CGMLBuilder:
             'directed',
             'G',
         )
-        nodes: list[CGMLNode] = [*self._getStateNodes(elements.states),
+        nodes: List[CGMLNode] = [*self._getStateNodes(elements.states),
                                  *self._getNoteNodes(elements.notes),
                                  self._getMetaNode(
                                      elements.meta, elements.platform),
                                  ]
+        edges: List[CGMLEdge] = self._getEdges(elements.transitions)
         if elements.initial_state is not None:
             nodes.append(
                 self._getInitialNode(elements.initial_state))
-            # TODO add initial's target
+            edges.append(self._getInitialEdge(
+                elements.initial_state.id, elements.initial_state.target))
         self.schema.graphml.graph.node = nodes
+        self.schema.graphml.graph.edge = edges
         schema: CGML = RootModel[CGML](self.schema).model_dump(
             by_alias=True, exclude_defaults=True)
         # У model_dump неправильный возвращаемый тип (CGML),
@@ -43,6 +61,27 @@ class CGMLBuilder:
             return unparse(schema, pretty=True)
         else:
             raise CGMLParserException('Internal error: Schema is not dict')
+
+    def _getInitialEdge(self, initId: str, target: str) -> CGMLEdge:
+        return CGMLEdge(
+            initId,
+            target
+        )
+
+    def _getEdges(self, transitions: List[CGMLTransition]) -> List[CGMLEdge]:
+        edges: List[CGMLEdge] = []
+        for transition in transitions:
+            edge: CGMLEdge = CGMLEdge(transition.source, transition.target)
+            data: List[CGMLDataNode] = []
+            data.append(self._actionsToData(transition.actions))
+            if transition.color is not None:
+                data.append(self._colorToData(transition.color))
+            if transition.position is not None:
+                data.append(self._pointToData(transition.position))
+            data.extend(transition.unknownDatanodes)
+            edge.data = data
+            edges.append(edge)
+        return edges
 
     def _getInitialNode(self, initialState: CGMLInitialState) -> CGMLNode:
         initialNode: CGMLNode = CGMLNode(initialState.id)
@@ -55,8 +94,7 @@ class CGMLBuilder:
 
     def _getInitialDataNode(self) -> CGMLDataNode:
         return CGMLDataNode(
-            'dInitial',
-            ''
+            'dInitial'
         )
 
     def _getMetaNode(self, meta: str, platform: str) -> CGMLNode:
@@ -69,7 +107,6 @@ class CGMLBuilder:
 
     def _getNoteNodes(self, notes: List[CGMLNote]) -> List[CGMLNode]:
         nodes: List[CGMLNode] = []
-
         for note in notes:
             data: List[CGMLDataNode] = []
             data.append(self._noteToData(note.text))
@@ -79,7 +116,6 @@ class CGMLBuilder:
                 note.id,
                 data=data
             ))
-
         return nodes
 
     def _pointToData(self, point: Point) -> CGMLDataNode:
@@ -105,7 +141,6 @@ class CGMLBuilder:
                 data.append(self._nameToData(state.name))
                 data.extend(state.unknownDatanodes)
                 node.data = data
-
                 return node
 
         nodes: Dict[str, CGMLNode] = {}
@@ -114,7 +149,8 @@ class CGMLBuilder:
             node: CGMLNode = _getCGMLNode(nodes, state, stateId)
             if state.parent is not None:
                 parentState: CGMLState = states[state.parent]
-                parent = _getCGMLNode(nodes, parentState, state.parent)
+                parent: CGMLNode = _getCGMLNode(
+                    nodes, parentState, state.parent)
                 if parent.graph is None:
                     parent.graph = CGMLGraph(
                         node=[node]
