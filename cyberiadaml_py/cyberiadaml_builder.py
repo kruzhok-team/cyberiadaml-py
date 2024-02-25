@@ -1,7 +1,7 @@
 from cyberiadaml_py.cyberiadaml_parser import CGMLParserException
 from cyberiadaml_py.types.cgml_schema import CGML, CGMLDataNode, CGMLGraph, CGMLGraphml, CGMLKeyNode, CGMLNode
 from cyberiadaml_py.types.common import Point, Rectangle
-from cyberiadaml_py.types.elements import AwailableKeys, CGMLElements, CGMLNote, CGMLState
+from cyberiadaml_py.types.elements import AwailableKeys, CGMLElements, CGMLInitialState, CGMLNote, CGMLState
 from typing import Iterable, List, Dict
 from xmltodict import unparse
 from pydantic import RootModel
@@ -24,11 +24,17 @@ class CGMLBuilder:
         self.schema.graphml.graph = CGMLGraph(
             'directed',
             'G',
-            node=[*self._getStateNodes(elements.states),
-                  *self._getNoteNodes(elements.notes)
-                  ]
         )
-
+        nodes: list[CGMLNode] = [*self._getStateNodes(elements.states),
+                                 *self._getNoteNodes(elements.notes),
+                                 self._getMetaNode(
+                                     elements.meta, elements.platform),
+                                 ]
+        if elements.initial_state is not None:
+            nodes.append(
+                self._getInitialNode(elements.initial_state))
+            # TODO add initial's target
+        self.schema.graphml.graph.node = nodes
         schema: CGML = RootModel[CGML](self.schema).model_dump(
             by_alias=True, exclude_defaults=True)
         # У model_dump неправильный возвращаемый тип (CGML),
@@ -37,6 +43,29 @@ class CGMLBuilder:
             return unparse(schema, pretty=True)
         else:
             raise CGMLParserException('Internal error: Schema is not dict')
+
+    def _getInitialNode(self, initialState: CGMLInitialState) -> CGMLNode:
+        initialNode: CGMLNode = CGMLNode(initialState.id)
+        data: List[CGMLDataNode] = []
+        if initialState.position is not None:
+            data.append(self._pointToData(initialState.position))
+        data.append(self._getInitialDataNode())
+        initialNode.data = data
+        return initialNode
+
+    def _getInitialDataNode(self) -> CGMLDataNode:
+        return CGMLDataNode(
+            'dInitial',
+            ''
+        )
+
+    def _getMetaNode(self, meta: str, platform: str) -> CGMLNode:
+        metaNode: CGMLNode = CGMLNode('')
+        data: List[CGMLDataNode] = []
+        data.append(self._nameToData(platform))
+        data.append(self._actionsToData(meta))
+        metaNode.data = data
+        return metaNode
 
     def _getNoteNodes(self, notes: List[CGMLNote]) -> List[CGMLNode]:
         nodes: List[CGMLNode] = []
