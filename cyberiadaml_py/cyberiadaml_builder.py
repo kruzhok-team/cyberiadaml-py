@@ -1,6 +1,6 @@
 from cyberiadaml_py.cyberiadaml_parser import CGMLParserException
 from cyberiadaml_py.types.cgml_schema import CGML, CGMLDataNode, CGMLGraph, CGMLGraphml, CGMLKeyNode, CGMLNode
-from cyberiadaml_py.types.common import Rectangle
+from cyberiadaml_py.types.common import Point, Rectangle
 from cyberiadaml_py.types.elements import AwailableKeys, CGMLElements, CGMLNote, CGMLState
 from typing import Iterable, List, Dict
 from xmltodict import unparse
@@ -19,8 +19,6 @@ class CGMLBuilder:
         ))
 
     def build(self, elements: CGMLElements) -> str:
-        # У model_dump неправильный возвращаемый тип (CGML),
-        # поэтому приходится явно показывать линтеру, что это dict
         self.schema.graphml.key = self._getKeys(elements.keys)
         self.schema.graphml.data = self._getFormatNode(elements.format)
         self.schema.graphml.graph = CGMLGraph(
@@ -33,6 +31,8 @@ class CGMLBuilder:
 
         schema: CGML = RootModel[CGML](self.schema).model_dump(
             by_alias=True, exclude_defaults=True)
+        # У model_dump неправильный возвращаемый тип (CGML),
+        # поэтому приходится явно показывать линтеру, что это dict
         if isinstance(schema, dict):
             return unparse(schema, pretty=True)
         else:
@@ -41,7 +41,25 @@ class CGMLBuilder:
     def _getNoteNodes(self, notes: List[CGMLNote]) -> List[CGMLNode]:
         nodes: List[CGMLNode] = []
 
+        for note in notes:
+            data: List[CGMLDataNode] = []
+            data.append(self._noteToData(note.text))
+            data.append(self._pointToData(note.position))
+            data.extend(note.unknownDatanodes)
+            nodes.append(CGMLNode(
+                note.id,
+                data=data
+            ))
+
         return nodes
+
+    def _pointToData(self, point: Point) -> CGMLDataNode:
+        return CGMLDataNode(
+            'dGeometry', None, str(point.x), str(point.y)
+        )
+
+    def _noteToData(self, note_information: str) -> CGMLDataNode:
+        return CGMLDataNode('dNote', note_information)
 
     def _getStateNodes(self, states: Dict[str, CGMLState]) -> List[CGMLNode]:
         def _getCGMLNode(nodes: Dict[str, CGMLNode], state: CGMLState, stateId: str) -> CGMLNode:

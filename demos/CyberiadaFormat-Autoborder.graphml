@@ -10,7 +10,7 @@
 <key id="dGeometry" for="edge"/>
 <key id="dGeometry" for="node"/>
 <key id="dMyExtension" for="node"/>
-
+<key id="dNote" for="node"/>
 <graph id="G" edgedefault="directed">
 
   <node id="">
@@ -71,6 +71,10 @@ exit/
     <data key="dGeometry" x="-1482.03857" y="606.497559" 
           width="20" height="20" />      
   </node>
+    <node id="ffshhqjtkhizazvaayop">
+      <data key="dNote">dasdasd</data>
+      <data key="dGeometry" x="30" y="185"></data>
+    </node>
   
   <edge source="init" target="n3"> </edge>
   <edge source="n0" target="n3">

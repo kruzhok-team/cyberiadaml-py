@@ -99,6 +99,7 @@ class CGMLParser:
                 parameters=componentState.actions
             ))  # TODO: raise exception if smth else
         self.elements.states = states
+        self.elements.notes = notes
         return self.elements
 
     def _getDataContent(self, dataNode: CGMLDataNode) -> str:
@@ -175,6 +176,7 @@ class CGMLParser:
                     newState.actions = self._getDataContent(dataNode)
                 case 'dNote':
                     isNote = True
+                    newState.actions = self._getDataContent(dataNode)
                 case 'dInitial':
                     isInit = True
                     if isNote:

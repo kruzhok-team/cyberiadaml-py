@@ -50,10 +50,10 @@ class CGMLTransition:
 
 @dataclass
 class CGMLNote:
-    id: str = Field(serialization_alias='@id')
     position: Point
     text: str
     unknownDatanodes: List[CGMLDataNode]
+    id: str = Field(serialization_alias='@id')
 
 
 @dataclass
