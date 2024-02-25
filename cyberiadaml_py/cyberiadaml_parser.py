@@ -142,7 +142,10 @@ class CGMLParser:
         isNote: bool = False
         isInit: bool = False
         for dataNode in state.unknownDatanodes:
-            if dataNode.key not in self.elements.keys['node']:
+            for keyNode in self.elements.keys['node']:
+                if dataNode.key == keyNode.id:
+                    break
+            else:
                 raise CGMLParserException(
                     (f'Unknown key {dataNode.key} for node, did you forgot: '
                      f'"<key id="{dataNode.key}" for="node"/>"?'))
@@ -272,9 +275,9 @@ class CGMLParser:
         if cgml.graphml.key is not None:
             if isinstance(cgml.graphml.key, Iterable):
                 for keyNode in cgml.graphml.key:
-                    keyNodeDict[keyNode.for_].append(keyNode.id)
+                    keyNodeDict[keyNode.for_].append(keyNode)
             else:
-                keyNodeDict[cgml.graphml.key.for_].append(cgml.graphml.key.id)
+                keyNodeDict[cgml.graphml.key.for_].append(cgml.graphml.key)
         return keyNodeDict
 
     def _getFormat(self, cgml: CGML) -> str:

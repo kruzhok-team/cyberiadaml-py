@@ -7,11 +7,11 @@ from typing import (
     TypeAlias
 )
 
-from .cgml_schema import CGMLDataNode
+from .cgml_schema import CGMLDataNode, CGMLKeyNode
 from .common import Point, Rectangle
 
 #  { node: ['dGeometry', ...], edge: ['dData', ...]}
-AwailableKeys: TypeAlias = DefaultDict[str, List[str]]
+AwailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
 
 @dataclass

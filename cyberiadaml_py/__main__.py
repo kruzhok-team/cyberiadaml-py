@@ -4,4 +4,4 @@ from .cyberiadaml_parser import CGMLParser
 if __name__ == '__main__':
     with open('demos/CyberiadaFormat-Autoborder.graphml', 'r') as f:
         a = CGMLParser().parseCGML(f.read())
-        CGMLBuilder().build(a)
+        print(CGMLBuilder().build(a))
