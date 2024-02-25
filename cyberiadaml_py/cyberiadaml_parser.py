@@ -78,7 +78,6 @@ class CGMLParser:
                     states[stateId] = state
             else:
                 raise CGMLParserException('Unknown type of node')
-
         # TODO Вынести в отдельные функции
         componentIds: List[str] = []
         for i in range(len(transitions)):
@@ -90,7 +89,6 @@ class CGMLParser:
                 componentIds.append(transitions[i].target)
             else:
                 self.elements.transitions.append(transitions[i])
-
         for componentId in componentIds:
             componentState: CGMLState | None = states.get(componentId)
             if componentState is None:
@@ -291,14 +289,12 @@ class CGMLParser:
                 if dataNode.key == 'gFormat':
                     if dataNode.content is not None:
                         return dataNode.content
-
                     raise CGMLParserException(
                         'Data node with key "gFormat" is empty')
         else:
             if cgml.graphml.data.key == 'gFormat':
                 if cgml.graphml.data.content is not None:
                     return cgml.graphml.data.content
-
                 raise CGMLParserException(
                     'Data node with key "gFormat" is empty')
         raise CGMLParserException('Data node with key "gFormat" is missing')

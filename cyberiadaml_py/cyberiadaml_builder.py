@@ -11,6 +11,7 @@ from cyberiadaml_py.types.cgml_schema import (
 from cyberiadaml_py.types.common import Point, Rectangle
 from cyberiadaml_py.types.elements import (
     AwailableKeys,
+    CGMLComponent,
     CGMLElements,
     CGMLInitialState,
     CGMLNote,
@@ -44,8 +45,10 @@ class CGMLBuilder:
                                  *self._getNoteNodes(elements.notes),
                                  self._getMetaNode(
                                      elements.meta, elements.platform),
+                                 *self._getComponentsNodes(elements.components)
                                  ]
-        edges: List[CGMLEdge] = self._getEdges(elements.transitions)
+        edges: List[CGMLEdge] = [*self._getEdges(elements.transitions),
+                                 *self._getComponentsEdges(elements.components)]
         if elements.initial_state is not None:
             nodes.append(
                 self._getInitialNode(elements.initial_state))
@@ -61,6 +64,23 @@ class CGMLBuilder:
             return unparse(schema, pretty=True)
         else:
             raise CGMLParserException('Internal error: Schema is not dict')
+
+    def _getComponentsEdges(self, components: List[CGMLComponent]) -> List[CGMLEdge]:
+        edges: List[CGMLEdge] = []
+        for component in components:
+            edges.append(CGMLEdge('', component.id))
+        return edges
+
+    def _getComponentsNodes(self, components: List[CGMLComponent]) -> List[CGMLNode]:
+        nodes: List[CGMLNode] = []
+        for component in components:
+            node: CGMLNode = CGMLNode(component.id)
+            data: List[CGMLDataNode] = []
+            data.append(self._nameToData(component.id))
+            data.append(self._actionsToData(component.parameters))
+            node.data = data
+            nodes.append(node)
+        return nodes
 
     def _getInitialEdge(self, initId: str, target: str) -> CGMLEdge:
         return CGMLEdge(
