@@ -64,6 +64,7 @@ class CGMLParser:
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
+        self.elements = CGMLParser.createEmptyElements()
         cgml = CGML(**parse(graphml))
         self.elements.format = self._getFormat(cgml)
         if self.elements.format != 'Cyberiada-GraphML':

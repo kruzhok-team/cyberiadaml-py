@@ -1,10 +1,15 @@
 from collections import defaultdict
 
 import pytest
+from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
 
 from cyberiadaml_py.types.cgml_schema import CGMLKeyNode
-from cyberiadaml_py.types.elements import CGMLNote, CGMLState, CGMLTransition, CGMLDataNode
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
+from cyberiadaml_py.types.elements import (
+    CGMLTransition,
+    CGMLDataNode,
+    CGMLElements
+)
 
 
 @pytest.mark.parametrize(
@@ -141,3 +146,27 @@ def test_processEdgeData(
     )
 
     assert parser._processEdgeData(transition) == expected
+
+
+@pytest.mark.parametrize(
+    'path', [
+        pytest.param(
+            'demos/CyberiadaFormat-Autoborder.graphml',
+            id='Bearloga'
+        ),
+        pytest.param(
+            'demos/CyberiadaFormat-Blinker.graphml',
+            id='ArduinoUno'
+        )
+    ]
+)
+def test_parse_build_cycle(path: str) -> None:
+    parser = CGMLParser()
+    builder = CGMLBuilder()
+
+    with open(path) as demo:
+        data: str = demo.read()
+        elements: CGMLElements = parser.parseCGML(data)
+        builded: str = builder.build(elements)
+        new_elements: CGMLElements = parser.parseCGML(builded)
+        assert new_elements == elements

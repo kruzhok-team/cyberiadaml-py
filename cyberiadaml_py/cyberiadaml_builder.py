@@ -237,7 +237,7 @@ class CGMLBuilder:
                             str(bounds.height))
 
     def _getFormatNode(self, format: str) -> CGMLDataNode:
-        return CGMLDataNode('dFormat', format)
+        return CGMLDataNode('gFormat', format)
 
     def _getKeys(self, awaialaibleKeys: AwailableKeys) -> List[CGMLKeyNode]:
         keyNodes: List[CGMLKeyNode] = []
