@@ -1,6 +1,7 @@
+from typing import List, Optional
+
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ConfigDict
-from typing import List, Optional
 
 
 @dataclass(config=ConfigDict(extra='forbid'))

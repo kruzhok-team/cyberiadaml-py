@@ -1,26 +1,52 @@
-from cyberiadaml_py.cyberiadaml_parser import CGMLParserException
-from cyberiadaml_py.types.cgml_schema import (
-    CGML,
-    CGMLDataNode,
-    CGMLEdge,
-    CGMLGraph,
-    CGMLGraphml,
-    CGMLKeyNode,
-    CGMLNode
-)
-from cyberiadaml_py.types.common import Point, Rectangle
-from cyberiadaml_py.types.elements import (
-    AwailableKeys,
-    CGMLComponent,
-    CGMLElements,
-    CGMLInitialState,
-    CGMLNote,
-    CGMLState,
-    CGMLTransition
-)
 from typing import Iterable, List, Dict
+
 from xmltodict import unparse
 from pydantic import RootModel
+
+try:
+    from cyberiadaml_py.types.cgml_schema import (
+        CGML,
+        CGMLDataNode,
+        CGMLEdge,
+        CGMLGraph,
+        CGMLGraphml,
+        CGMLKeyNode,
+        CGMLNode
+    )
+    from cyberiadaml_py.types.common import Point, Rectangle
+    from cyberiadaml_py.types.elements import (
+        AwailableKeys,
+        CGMLComponent,
+        CGMLElements,
+        CGMLInitialState,
+        CGMLNote,
+        CGMLState,
+        CGMLTransition
+    )
+except ImportError:
+    from .types.cgml_schema import (
+        CGML,
+        CGMLDataNode,
+        CGMLEdge,
+        CGMLGraph,
+        CGMLGraphml,
+        CGMLKeyNode,
+        CGMLNode
+    )
+    from .types.common import Point, Rectangle
+    from .types.elements import (
+        AwailableKeys,
+        CGMLComponent,
+        CGMLElements,
+        CGMLInitialState,
+        CGMLNote,
+        CGMLState,
+        CGMLTransition
+    )
+
+
+class CGMLBuilderException(Exception):
+    ...
 
 
 class CGMLBuilder:
@@ -47,8 +73,10 @@ class CGMLBuilder:
                                      elements.meta, elements.platform),
                                  *self._getComponentsNodes(elements.components)
                                  ]
-        edges: List[CGMLEdge] = [*self._getEdges(elements.transitions),
-                                 *self._getComponentsEdges(elements.components)]
+        edges: List[CGMLEdge] = [
+            *self._getEdges(elements.transitions),
+            *self._getComponentsEdges(elements.components)
+        ]
         if elements.initial_state is not None:
             nodes.append(
                 self._getInitialNode(elements.initial_state))
@@ -63,15 +91,17 @@ class CGMLBuilder:
         if isinstance(schema, dict):
             return unparse(schema, pretty=True)
         else:
-            raise CGMLParserException('Internal error: Schema is not dict')
+            raise CGMLBuilderException('Internal error: Schema is not dict')
 
-    def _getComponentsEdges(self, components: List[CGMLComponent]) -> List[CGMLEdge]:
+    def _getComponentsEdges(self,
+                            components: List[CGMLComponent]) -> List[CGMLEdge]:
         edges: List[CGMLEdge] = []
         for component in components:
             edges.append(CGMLEdge('', component.id))
         return edges
 
-    def _getComponentsNodes(self, components: List[CGMLComponent]) -> List[CGMLNode]:
+    def _getComponentsNodes(self,
+                            components: List[CGMLComponent]) -> List[CGMLNode]:
         nodes: List[CGMLNode] = []
         for component in components:
             node: CGMLNode = CGMLNode(component.id)
@@ -147,7 +177,8 @@ class CGMLBuilder:
         return CGMLDataNode('dNote', note_information)
 
     def _getStateNodes(self, states: Dict[str, CGMLState]) -> List[CGMLNode]:
-        def _getCGMLNode(nodes: Dict[str, CGMLNode], state: CGMLState, stateId: str) -> CGMLNode:
+        def _getCGMLNode(nodes: Dict[str, CGMLNode],
+                         state: CGMLState, stateId: str) -> CGMLNode:
             if nodes.get(stateId) is not None:
                 return nodes[stateId]
             else:

@@ -1,5 +1,3 @@
-from pydantic.dataclasses import dataclass
-from pydantic import Field
 from typing import (
     List,
     Dict,
@@ -8,9 +6,15 @@ from typing import (
     TypeAlias
 )
 
-from .cgml_schema import CGMLDataNode, CGMLKeyNode
-from .common import Point, Rectangle
+from pydantic.dataclasses import dataclass
+from pydantic import Field
 
+try:
+    from .cgml_schema import CGMLDataNode, CGMLKeyNode
+    from .common import Point, Rectangle
+except ImportError:
+    from cyberiadaml_py.types.cgml_schema import CGMLDataNode, CGMLKeyNode
+    from cyberiadaml_py.types.common import Point, Rectangle
 #  { node: ['dGeometry', ...], edge: ['dData', ...]}
 AwailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 

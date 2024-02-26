@@ -1,20 +1,45 @@
-# TODO: organize import
-from xmltodict import parse
-from cyberiadaml_py.types.common import Point, Rectangle
-from cyberiadaml_py.types.elements import (
-    CGMLComponent,
-    CGMLElements,
-    AwailableKeys,
-    CGMLInitialState,
-    CGMLNote,
-    CGMLState,
-    CGMLTransition
-)
-
 from collections import defaultdict
 from collections.abc import Iterable
-from .types.cgml_schema import CGML, CGMLDataNode, CGMLEdge, CGMLGraph, CGMLNode
 from typing import Any, List, Dict, Optional
+
+from xmltodict import parse
+
+try:
+    from .types.common import Point, Rectangle
+    from .types.cgml_schema import (
+        CGML,
+        CGMLDataNode,
+        CGMLEdge,
+        CGMLGraph,
+        CGMLNode
+    )
+    from .types.elements import (
+        CGMLComponent,
+        CGMLElements,
+        AwailableKeys,
+        CGMLInitialState,
+        CGMLNote,
+        CGMLState,
+        CGMLTransition
+    )
+except ImportError:
+    from cyberiadaml_py.types.cgml_schema import (
+        CGML,
+        CGMLDataNode,
+        CGMLEdge,
+        CGMLGraph,
+        CGMLNode
+    )
+    from cyberiadaml_py.types.common import Point, Rectangle
+    from cyberiadaml_py.types.elements import (
+        CGMLComponent,
+        CGMLElements,
+        AwailableKeys,
+        CGMLInitialState,
+        CGMLNote,
+        CGMLState,
+        CGMLTransition
+    )
 
 
 class CGMLParserException(Exception):
@@ -82,8 +107,8 @@ class CGMLParser:
         componentIds: List[str] = []
         for i in range(len(transitions)):
             transitions[i] = self._processEdgeData(transitions[i])
-            if (self.elements.initial_state is not None
-                    and transitions[i].source == self.elements.initial_state.id):
+            if (self.elements.initial_state is not None and
+                    transitions[i].source == self.elements.initial_state.id):
                 self.elements.initial_state.target = transitions[i].target
             elif transitions[i].source == '':
                 componentIds.append(transitions[i].target)
@@ -118,7 +143,8 @@ class CGMLParser:
                 case 'dGeometry':
                     if dataNode.x is None or dataNode.y is None:
                         raise CGMLParserException(
-                            'Edge with key dGeometry doesn\'t have x, y properties')
+                            'Edge with key dGeometry\
+                                doesnt have x, y properties')
                     newTransition.position = Point(
                         float(dataNode.x), float(dataNode.y))
                 case 'dColor':
@@ -127,7 +153,9 @@ class CGMLParser:
                     newTransition.unknownDatanodes.append(dataNode)
         return newTransition
 
-    def _processStateData(self, state: CGMLState, stateId: str) -> tuple[CGMLState | CGMLNote, bool]:
+    def _processStateData(self,
+                          state: CGMLState,
+                          stateId: str) -> tuple[CGMLState | CGMLNote, bool]:
         """
         return tuple[CGMLState | CGMLNote, isInit]
         """
@@ -155,11 +183,13 @@ class CGMLParser:
                 case 'dGeometry':
                     if dataNode.x is None or dataNode.y is None:
                         raise CGMLParserException(
-                            'Node with key dGeometry doesn\'t have x, y properties')
+                            'Node with key dGeometry\
+                                doesnt have x, y properties')
                     x: float = float(dataNode.x)
                     y: float = float(dataNode.y)
 
-                    if dataNode.width is not None and dataNode.height is not None:
+                    if (dataNode.width is not None
+                            and dataNode.height is not None):
                         newState.bounds = Rectangle(
                             x=x,
                             y=y,
@@ -224,14 +254,17 @@ class CGMLParser:
             return [nodes]
 
     def _parseGraphEdges(self, root: CGMLGraph) -> List[CGMLTransition]:
-        def _parseEdge(edge: CGMLEdge, cgmlTransitions: List[CGMLTransition]) -> None:
-            cgmlTransitions.append(CGMLTransition(source=edge.source,
-                                                  target=edge.target,
-                                                  actions='',
-                                                  unknownDatanodes=self._toList(
-                                                      edge.data),
-                                                  )
-                                   )
+        def _parseEdge(edge: CGMLEdge,
+                       cgmlTransitions: List[CGMLTransition]) -> None:
+            cgmlTransitions.append(
+                CGMLTransition(
+                    source=edge.source,
+                    target=edge.target,
+                    actions='',
+                    unknownDatanodes=self._toList(
+                        edge.data),
+                )
+            )
 
         cgmlTransitions: List[CGMLTransition] = []
         if root.edge is not None:
@@ -242,7 +275,9 @@ class CGMLParser:
                 _parseEdge(root.edge, cgmlTransitions)
         return cgmlTransitions
 
-    def _parseGraphNodes(self, root: CGMLGraph, parent: Optional[str] = None) -> Dict[str, CGMLState]:
+    def _parseGraphNodes(self,
+                         root: CGMLGraph,
+                         parent: Optional[str] = None) -> Dict[str, CGMLState]:
         def parseNode(node: CGMLNode) -> Dict[str, CGMLState]:
             cgmlStates: Dict[str, CGMLState] = {}
             cgmlStates[node.id] = CGMLState(
@@ -268,7 +303,8 @@ class CGMLParser:
                 cgmlStates = cgmlStates | parseNode(root.node)
         return cgmlStates
 
-    def _checkDataNodeKey(self, node_name: str, key: str, awaialableKeys: AwailableKeys) -> bool:
+    def _checkDataNodeKey(self, node_name: str, key: str,
+                          awaialableKeys: AwailableKeys) -> bool:
         return key in awaialableKeys[node_name]
 
     # key nodes to comfortable dict
