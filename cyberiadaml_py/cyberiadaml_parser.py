@@ -137,6 +137,13 @@ class CGMLParser:
             unknownDatanodes=[]
         )
         for dataNode in transition.unknownDatanodes:
+            for keyNode in self.elements.keys['edge']:
+                if dataNode.key == keyNode.id:
+                    break
+            else:
+                raise CGMLParserException(
+                    (f'Unknown key {dataNode.key} for edge, did you forgot: '
+                     f'"<key id="{dataNode.key}" for="edge"/>"?'))
             match dataNode.key:
                 case 'dData':
                     newTransition.actions = self._getDataContent(dataNode)
@@ -170,13 +177,6 @@ class CGMLParser:
         isNote: bool = False
         isInit: bool = False
         for dataNode in state.unknownDatanodes:
-            for keyNode in self.elements.keys['node']:
-                if dataNode.key == keyNode.id:
-                    break
-            else:
-                raise CGMLParserException(
-                    (f'Unknown key {dataNode.key} for node, did you forgot: '
-                     f'"<key id="{dataNode.key}" for="node"/>"?'))
             match dataNode.key:
                 case 'dName':
                     newState.name = self._getDataContent(dataNode)
