@@ -1,4 +1,4 @@
-from typing import Iterable, List, Dict
+from typing import Dict, Iterable, List
 
 from xmltodict import unparse
 from pydantic import RootModel
@@ -55,12 +55,20 @@ class CGMLBuilder:
 
     @staticmethod
     def createEmptySchema() -> CGML:
+        """Create empty CyberiadaML schema."""
         return CGML(graphml=CGMLGraphml(
             [],
             'http://graphml.graphdrawing.org/xmlns',
         ))
 
     def build(self, elements: CGMLElements) -> str:
+        """_summary_
+
+        Args:
+            elements (CGMLElements): is set of
+        Returns:
+            str: graphml schema
+        """
         self.schema.graphml.key = self._getKeys(elements.keys)
         self.schema.graphml.data = self._getFormatNode(elements.format)
         self.schema.graphml.graph = CGMLGraph(

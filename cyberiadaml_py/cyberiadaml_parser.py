@@ -1,6 +1,7 @@
+"""The module implements parsing CyberiadaML."""
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any, List, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from xmltodict import parse
 
@@ -47,11 +48,14 @@ class CGMLParserException(Exception):
 
 
 class CGMLParser:
+    """Class that contains functions for parsing CyberiadaML."""
+
     def __init__(self) -> None:
         self.elements: CGMLElements = CGMLParser.createEmptyElements()
 
     @staticmethod
     def createEmptyElements() -> CGMLElements:
+        """Create CGMLElements with empty fields."""
         return CGMLElements(
             states={},
             transitions=[],
@@ -64,6 +68,31 @@ class CGMLParser:
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
+        """
+        Parse CyberiadaGraphml schema.
+
+        Args:
+            graphml (str): graphml schema.
+
+        Returns:
+            CGMLElements: 
+
+        Raises:
+            CGMLParserException('Data node with key "gFormat" is empty'):\
+                content of <data key='gFormat'> is None
+            CGMLParserException('Data node with key "gFormat" is missing'):\
+                <data key='gFormat'> doesn't exist in graphml->data.s
+            CGMLParserException('No position for note!):\
+                <node>, that contains <data key='dNote'>, \
+                    doesn't contains <data key='dGeometry' x='...' y='...'>
+            CGMLParserException('Unknown key "key" for "node-type",\
+                                    did you forgot ...'):\
+                                        using an undeclarated key
+            CGMLParserException('<node-type> with key\
+                dGeometry doesnt have x, y properties'): \
+                    <data key='dGeometry'> must contain at least x and y\
+                        properties (width and height are additional)
+        """
         self.elements = CGMLParser.createEmptyElements()
         cgml = CGML(**parse(graphml))
         self.elements.format = self._getFormat(cgml)
@@ -103,7 +132,8 @@ class CGMLParser:
                 else:
                     states[stateId] = state
             else:
-                raise CGMLParserException('Unknown type of node')
+                raise CGMLParserException(
+                    'Internal error: Unknown type of node')
         # TODO Вынести в отдельные функции
         componentIds: List[str] = []
         for i in range(len(transitions)):
@@ -164,9 +194,7 @@ class CGMLParser:
     def _processStateData(self,
                           state: CGMLState,
                           stateId: str) -> tuple[CGMLState | CGMLNote, bool]:
-        """
-        return tuple[CGMLState | CGMLNote, isInit]
-        """
+        """Return tuple[CGMLState | CGMLNote, isInit]."""
         # no mutations? B^)
         newState = CGMLState(
             name=state.name,
@@ -232,9 +260,7 @@ class CGMLParser:
         return (newState, isInit)
 
     def _getMeta(self, metaNode: CGMLState) -> tuple[str, str]:
-        """
-        return tuple[platfrom, meta]
-        """
+        """Return tuple[platfrom, meta]."""
         dataNodes: List[CGMLDataNode] = self._toList(metaNode.unknownDatanodes)
         platform: str = ''
         meta: str = ''
