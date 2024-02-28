@@ -1,4 +1,4 @@
-"""Module containing the types of schema elements."""
+"""Module containing the types of parsed scheme's elements."""
 from typing import (
     List,
     Dict,
@@ -22,6 +22,22 @@ AwailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
 @dataclass
 class CGMLState:
+    """
+    Data class with information about state.
+
+    State is <node>, that not connected with meta node,\
+        doesn't have data node with key 'dNote' or 'dInitial'
+
+    Parameters:
+    name: content of data node with key 'dName'.
+    actions: content of data node with key 'dData'.
+    bounds: x, y, width, height properties of data node with key 'dGeometry'.
+    parent: parent state id.
+    color: content of data node with key 'dColor'.
+    unknownDatanodes: all datanodes, whose information\
+        is not included in the type.
+    """
+
     name: str
     actions: str
     unknownDatanodes: List[CGMLDataNode]
@@ -32,6 +48,13 @@ class CGMLState:
 
 @dataclass
 class CGMLComponent:
+    """
+    Data class with information about component.
+
+    Component is node, that connected with meta node (<node id=''>).
+    parameters: content of data node with key 'dData'.
+    """
+
     id: str
     parameters: str
 
@@ -42,6 +65,8 @@ class CGMLInitialState:
     Data class with information about initial state (pseudo node).
 
     Intiial state is <node>, that contains data node with key 'dInitial'.
+
+    Parameters:
     id: state's id.
     target: state's id, thats connetcted with initial state\
         (<edge source="initial state id" target="target state's id">)
@@ -58,13 +83,14 @@ class CGMLTransition:
     """
     Data class with information about transition(<edge>).
 
+    Parameters:
     source: <edge> source property's content.
     target: <edge> target property's content.
     actions: content of data node with 'dData' key.
     color: content of data node with 'dColor' key.
     position: x, y properties of data node with 'dGeometry' key.
     unknownDatanodes: all datanodes, whose information\
-    is not included in the type.
+        is not included in the type.
     """
 
     source: str
@@ -99,18 +125,16 @@ class CGMLElements:
     Contains dict of states, where the key is state's id.
     Also contains trainstions, components, awaialable keys, notes.
 
+    States doesn't contains components nodes and initial state.
+    Transitions doesn't contains edges from meta-node(<node id=''>)\
+        to components nodes.
+
+    Parameters:
     meta: content of data node\
         with key 'dData' inside <node id="">
-
     format: content of data node with key 'gFormat'.
-
     platform: content of data node with key 'dName'\
         inside <node id="">
-
-    States doesn't contains components nodes and initial state.
-
-    Transitions doesn't contains edges from meta-node(with id='')\
-        to components nodes.
     """
 
     states: Dict[str, CGMLState]
