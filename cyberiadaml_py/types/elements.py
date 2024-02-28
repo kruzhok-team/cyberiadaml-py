@@ -1,4 +1,4 @@
-"""Module containing the types of parsed scheme's elements."""
+"""Module contains the types of parsed scheme's elements."""
 from typing import (
     List,
     Dict,
@@ -122,7 +122,7 @@ class CGMLElements:
     """
     Dataclass with elements of parsed scheme.
 
-    Contains dict of states, where the key is state's id.
+    Contains dict of CGMLStates, where the key is state's id.
     Also contains trainstions, components, awaialable keys, notes.
 
     States doesn't contains components nodes and initial state.
@@ -135,6 +135,8 @@ class CGMLElements:
     format: content of data node with key 'gFormat'.
     platform: content of data node with key 'dName'\
         inside <node id="">
+    keys: dict of KeyNodes, where the key is 'for' attribute.\
+        Example: { "node": [KeyNode, ...], "edge": [...] }
     """
 
     states: Dict[str, CGMLState]
