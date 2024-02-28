@@ -3,7 +3,7 @@ from collections import defaultdict
 import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
 
-from cyberiadaml_py.types.cgml_schema import CGMLKeyNode
+from cyberiadaml_py.types.cgml_scheme import CGMLKeyNode
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
 from cyberiadaml_py.types.elements import (
     CGMLTransition,

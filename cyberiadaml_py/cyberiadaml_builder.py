@@ -1,10 +1,11 @@
+"""Module implements building CyberiadaML schemes."""
 from typing import Dict, Iterable, List
 
 from xmltodict import unparse
 from pydantic import RootModel
 
 try:
-    from cyberiadaml_py.types.cgml_schema import (
+    from cyberiadaml_py.types.cgml_scheme import (
         CGML,
         CGMLDataNode,
         CGMLEdge,
@@ -24,7 +25,7 @@ try:
         CGMLTransition
     )
 except ImportError:
-    from .types.cgml_schema import (
+    from .types.cgml_scheme import (
         CGML,
         CGMLDataNode,
         CGMLEdge,
@@ -46,32 +47,30 @@ except ImportError:
 
 
 class CGMLBuilderException(Exception):
+    """Logical errors during building CGML scheme."""
+
     ...
 
 
 class CGMLBuilder:
+    """Contains functions to build CGML scheme."""
+
     def __init__(self) -> None:
-        self.schema: CGML = CGMLBuilder.createEmptySchema()
+        self.scheme: CGML = CGMLBuilder.createEmptyscheme()
 
     @staticmethod
-    def createEmptySchema() -> CGML:
-        """Create empty CyberiadaML schema."""
+    def createEmptyscheme() -> CGML:
+        """Create empty CyberiadaML scheme."""
         return CGML(graphml=CGMLGraphml(
             [],
             'http://graphml.graphdrawing.org/xmlns',
         ))
 
     def build(self, elements: CGMLElements) -> str:
-        """_summary_
-
-        Args:
-            elements (CGMLElements): is set of
-        Returns:
-            str: graphml schema
-        """
-        self.schema.graphml.key = self._getKeys(elements.keys)
-        self.schema.graphml.data = self._getFormatNode(elements.format)
-        self.schema.graphml.graph = CGMLGraph(
+        """Build CGML scheme from elements."""
+        self.scheme.graphml.key = self._getKeys(elements.keys)
+        self.scheme.graphml.data = self._getFormatNode(elements.format)
+        self.scheme.graphml.graph = CGMLGraph(
             'directed',
             'G',
         )
@@ -90,16 +89,16 @@ class CGMLBuilder:
                 self._getInitialNode(elements.initial_state))
             edges.append(self._getInitialEdge(
                 elements.initial_state.id, elements.initial_state.target))
-        self.schema.graphml.graph.node = nodes
-        self.schema.graphml.graph.edge = edges
-        schema: CGML = RootModel[CGML](self.schema).model_dump(
+        self.scheme.graphml.graph.node = nodes
+        self.scheme.graphml.graph.edge = edges
+        scheme: CGML = RootModel[CGML](self.scheme).model_dump(
             by_alias=True, exclude_defaults=True)
         # У model_dump неправильный возвращаемый тип (CGML),
         # поэтому приходится явно показывать линтеру, что это dict
-        if isinstance(schema, dict):
-            return unparse(schema, pretty=True)
+        if isinstance(scheme, dict):
+            return unparse(scheme, pretty=True)
         else:
-            raise CGMLBuilderException('Internal error: Schema is not dict')
+            raise CGMLBuilderException('Internal error: scheme is not dict')
 
     def _getComponentsEdges(self,
                             components: List[CGMLComponent]) -> List[CGMLEdge]:

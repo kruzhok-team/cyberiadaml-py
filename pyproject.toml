@@ -28,4 +28,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.flake8]
 import-order-style="pep8"
 inline-quotes = "single"
-ignore=["D107"]
+ignore=["D107", "W504"]

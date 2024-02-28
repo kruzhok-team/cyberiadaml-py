@@ -1,4 +1,4 @@
-"""The module implements parsing CyberiadaML."""
+"""The module implements parsing CyberiadaML schemes."""
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import Any, Dict, List, Optional
@@ -7,7 +7,7 @@ from xmltodict import parse
 
 try:
     from .types.common import Point, Rectangle
-    from .types.cgml_schema import (
+    from .types.cgml_scheme import (
         CGML,
         CGMLDataNode,
         CGMLEdge,
@@ -24,7 +24,7 @@ try:
         CGMLTransition
     )
 except ImportError:
-    from cyberiadaml_py.types.cgml_schema import (
+    from cyberiadaml_py.types.cgml_scheme import (
         CGML,
         CGMLDataNode,
         CGMLEdge,
@@ -44,6 +44,8 @@ except ImportError:
 
 
 class CGMLParserException(Exception):
+    """Logical errors during parsing CGML scheme."""
+
     ...
 
 
@@ -69,21 +71,21 @@ class CGMLParser:
 
     def parseCGML(self, graphml: str) -> CGMLElements:
         """
-        Parse CyberiadaGraphml schema.
+        Parse CyberiadaGraphml scheme.
 
         Args:
-            graphml (str): graphml schema.
+            graphml (str): CyberiadaML scheme.
 
         Returns:
-            CGMLElements: 
-
+            CGMLElements: notes, states, transitions,\
+                initial state and components
         Raises:
             CGMLParserException('Data node with key "gFormat" is empty'):\
                 content of <data key='gFormat'> is None
             CGMLParserException('Data node with key "gFormat" is missing'):\
                 <data key='gFormat'> doesn't exist in graphml->data.s
             CGMLParserException('No position for note!):\
-                <node>, that contains <data key='dNote'>, \
+                <node>, that contains <data key='dNote'>, graphml
                     doesn't contains <data key='dGeometry' x='...' y='...'>
             CGMLParserException('Unknown key "key" for "node-type",\
                                     did you forgot ...'):\
@@ -92,6 +94,8 @@ class CGMLParser:
                 dGeometry doesnt have x, y properties'): \
                     <data key='dGeometry'> must contain at least x and y\
                         properties (width and height are additional)
+            ValidationError(...): pydatinc's validation error, occurs when\
+                the scheme doesn't match the format.
         """
         self.elements = CGMLParser.createEmptyElements()
         cgml = CGML(**parse(graphml))
@@ -217,8 +221,8 @@ class CGMLParser:
                     x: float = float(dataNode.x)
                     y: float = float(dataNode.y)
 
-                    if (dataNode.width is not None
-                            and dataNode.height is not None):
+                    if (dataNode.width is not None and
+                            dataNode.height is not None):
                         newState.bounds = Rectangle(
                             x=x,
                             y=y,
