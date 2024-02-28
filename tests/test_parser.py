@@ -1,8 +1,9 @@
+"""Module with tests of CGMLParser."""
+
 from collections import defaultdict
 
 import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
-
 from cyberiadaml_py.types.cgml_scheme import CGMLKeyNode
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
 from cyberiadaml_py.types.elements import (
@@ -127,6 +128,7 @@ from cyberiadaml_py.types.elements import (
 )
 def test_processEdgeData(
         transition: CGMLTransition, expected: CGMLTransition) -> None:
+    """Test _processEdgeData function."""
     parser = CGMLParser()
     parser.elements.keys = defaultdict(lambda: [])
     parser.elements.keys['edge'].extend([
@@ -161,6 +163,7 @@ def test_processEdgeData(
     ]
 )
 def test_parse_build_cycle(path: str) -> None:
+    """Test parse-build cycle."""
     parser = CGMLParser()
     builder = CGMLBuilder()
 
