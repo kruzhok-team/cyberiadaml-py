@@ -1,20 +1,31 @@
 [tool.poetry]
 name = "cyberiadaml-py"
 version = "0.1.0"
-description = ""
+description = "The Python 3 library for processing the CyberiadaML state machine graphs"
 authors = ["L140-beep <kartoshka0302@mail.ru>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "~3.10"
 xmltodict = "^0.13.0"
+types-xmltodict = "^0.13.0.3"
+pydantic = "^2.6.1"
 
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.1"
 mypy = "^1.8.0"
 flake8 = "^7.0.0"
+flake8-docstrings = "^1.7.0"
+flake8-import-order = "^0.18.2"
+flake8-quotes = "^3.4.0"
+flake8-pyproject = "^1.2.3"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+import-order-style="pep8"
+inline-quotes = "single"
+ignore=["D107", "W504"]
