@@ -18,7 +18,7 @@ class CGMLDataNode:
     height: Optional[str] = Field(default=None, alias='@height')
 
 
-@dataclass(config=ConfigDict(extra='forbid'))
+@dataclass(config=ConfigDict(extra='allow'))
 class CGMLKeyNode:
     """Type representing <key> node."""
 
@@ -32,6 +32,7 @@ class CGMLKeyNode:
 class CGMLEdge:
     """Type representing <edge> node."""
 
+    id: str = Field(alias='@id')
     source: str = Field(alias='@source')
     target: str = Field(alias='@target')
     data: Optional[List[CGMLDataNode] | CGMLDataNode] = None

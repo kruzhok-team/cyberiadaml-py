@@ -1,6 +1,7 @@
 """Module with tests of CGMLParser."""
 
 from collections import defaultdict
+from pprint import pprint
 
 import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
@@ -18,12 +19,14 @@ from cyberiadaml_py.types.elements import (
     [
         pytest.param(
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
                 unknownDatanodes=[]
             ),
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -33,6 +36,7 @@ from cyberiadaml_py.types.elements import (
         ),
         pytest.param(
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -44,6 +48,7 @@ from cyberiadaml_py.types.elements import (
                 ]
             ),
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='actions',
@@ -53,6 +58,7 @@ from cyberiadaml_py.types.elements import (
         ),
         pytest.param(
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -64,6 +70,7 @@ from cyberiadaml_py.types.elements import (
                 ]
             ),
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -74,6 +81,7 @@ from cyberiadaml_py.types.elements import (
         ),
         pytest.param(
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -85,6 +93,7 @@ from cyberiadaml_py.types.elements import (
                 ]
             ),
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -99,6 +108,7 @@ from cyberiadaml_py.types.elements import (
         ),
         pytest.param(
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -110,6 +120,7 @@ from cyberiadaml_py.types.elements import (
                 ]
             ),
             CGMLTransition(
+                id='',
                 source='source',
                 target='target',
                 actions='',
@@ -170,6 +181,8 @@ def test_parse_build_cycle(path: str) -> None:
     with open(path) as demo:
         data: str = demo.read()
         elements: CGMLElements = parser.parseCGML(data)
+        pprint(elements)
+        print('-----------')
         builded: str = builder.build(elements)
         new_elements: CGMLElements = parser.parseCGML(builded)
         assert new_elements == elements
