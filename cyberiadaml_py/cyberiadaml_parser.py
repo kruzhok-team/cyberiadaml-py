@@ -66,7 +66,7 @@ class CGMLParser:
             format='',
             meta='',
             keys=defaultdict(),
-            notes=[]
+            notes={}
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
@@ -108,7 +108,7 @@ class CGMLParser:
         graphs: List[CGMLGraph] = self._toList(cgml.graphml.graph)
         states: Dict[str, CGMLState] = {}
         transitions: Dict[str, CGMLTransition] = {}
-        notes: List[CGMLNote] = []
+        notes: Dict[str, CGMLNote] = {}
         for graph in graphs:
             states = states | self._parseGraphNodes(graph)
             transitions = transitions | self._parseGraphEdges(graph)
@@ -121,7 +121,7 @@ class CGMLParser:
         for stateId in list(states.keys()):
             state, isInit = self._processStateData(states[stateId], stateId)
             if isinstance(state, CGMLNote):
-                notes.append(state)
+                notes[state.id] = state
                 del states[stateId]
             elif isinstance(state, CGMLState):
                 if isInit:

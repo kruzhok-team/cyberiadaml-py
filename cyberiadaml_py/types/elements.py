@@ -148,5 +148,5 @@ class CGMLElements:
     meta: str
     format: str
     keys: AwailableKeys
-    notes: List[CGMLNote]
+    notes: Dict[str, CGMLNote]
     initial_state: Optional[CGMLInitialState] = None

@@ -75,7 +75,8 @@ class CGMLBuilder:
             'G',
         )
         nodes: List[CGMLNode] = [*self._getStateNodes(elements.states),
-                                 *self._getNoteNodes(elements.notes),
+                                 *self._getNoteNodes(
+                                     list(elements.notes.values())),
                                  self._getMetaNode(
                                      elements.meta, elements.platform),
                                  *self._getComponentsNodes(elements.components)
