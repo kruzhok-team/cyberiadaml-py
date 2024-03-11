@@ -107,7 +107,7 @@ class CGMLBuilder:
                             components: List[CGMLComponent]) -> List[CGMLEdge]:
         edges: List[CGMLEdge] = []
         for component in components:
-            edges.append(CGMLEdge(component.id, '', component.id))
+            edges.append(CGMLEdge(f'edge_{component.id}', '', component.id))
         return edges
 
     def _getComponentsNodes(self,
