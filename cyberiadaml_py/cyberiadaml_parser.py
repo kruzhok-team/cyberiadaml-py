@@ -60,13 +60,13 @@ class CGMLParser:
         """Create CGMLElements with empty fields."""
         return CGMLElements(
             states={},
-            transitions=[],
+            transitions={},
             components=[],
             platform='',
             format='',
             meta='',
             keys=defaultdict(),
-            notes=[]
+            notes={}
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
@@ -107,11 +107,11 @@ class CGMLParser:
         self.elements.keys = self._getAwaialbleKeys(cgml)
         graphs: List[CGMLGraph] = self._toList(cgml.graphml.graph)
         states: Dict[str, CGMLState] = {}
-        transitions: List[CGMLTransition] = []
-        notes: List[CGMLNote] = []
+        transitions: Dict[str, CGMLTransition] = {}
+        notes: Dict[str, CGMLNote] = {}
         for graph in graphs:
             states = states | self._parseGraphNodes(graph)
-            transitions = [*transitions, *self._parseGraphEdges(graph)]
+            transitions = transitions | self._parseGraphEdges(graph)
         try:
             self.elements.platform, self.elements.meta = self._getMeta(
                 states[''])
@@ -121,7 +121,7 @@ class CGMLParser:
         for stateId in list(states.keys()):
             state, isInit = self._processStateData(states[stateId], stateId)
             if isinstance(state, CGMLNote):
-                notes.append(state)
+                notes[state.id] = state
                 del states[stateId]
             elif isinstance(state, CGMLState):
                 if isInit:
@@ -131,7 +131,8 @@ class CGMLParser:
                     if state.bounds is not None:
                         position = Point(state.bounds.x, state.bounds.y)
                     self.elements.initial_state = CGMLInitialState(
-                        id=stateId, target='', position=position)
+                        transitionId='', id=stateId,
+                        target='', position=position)
                     del states[stateId]
                 else:
                     states[stateId] = state
@@ -140,15 +141,19 @@ class CGMLParser:
                     'Internal error: Unknown type of node')
         # TODO Вынести в отдельные функции
         componentIds: List[str] = []
-        for i in range(len(transitions)):
-            transitions[i] = self._processEdgeData(transitions[i])
+        for transition in list(transitions.values()):
+            processedTransition: CGMLTransition = self._processEdgeData(
+                transition)
             if (self.elements.initial_state is not None and
-                    transitions[i].source == self.elements.initial_state.id):
-                self.elements.initial_state.target = transitions[i].target
-            elif transitions[i].source == '':
-                componentIds.append(transitions[i].target)
+                    (processedTransition.source ==
+                        self.elements.initial_state.id)):
+                self.elements.initial_state.target = processedTransition.target
+                self.elements.initial_state\
+                    .transitionId = processedTransition.id
+            elif transition.source == '':
+                componentIds.append(transition.target)
             else:
-                self.elements.transitions.append(transitions[i])
+                self.elements.transitions[transition.id] = processedTransition
         for componentId in componentIds:
             componentState: CGMLState | None = states.get(componentId)
             if componentState is None:
@@ -157,6 +162,7 @@ class CGMLParser:
                 id=componentId,
                 parameters=componentState.actions
             ))  # TODO: raise exception if smth else
+            del states[componentId]
         self.elements.states = states
         self.elements.notes = notes
         return self.elements
@@ -166,6 +172,7 @@ class CGMLParser:
 
     def _processEdgeData(self, transition: CGMLTransition) -> CGMLTransition:
         newTransition = CGMLTransition(
+            id=transition.id,
             source=transition.source,
             target=transition.target,
             actions=transition.actions,
@@ -284,20 +291,19 @@ class CGMLParser:
         else:
             return [nodes]
 
-    def _parseGraphEdges(self, root: CGMLGraph) -> List[CGMLTransition]:
+    def _parseGraphEdges(self, root: CGMLGraph) -> Dict[str, CGMLTransition]:
         def _parseEdge(edge: CGMLEdge,
-                       cgmlTransitions: List[CGMLTransition]) -> None:
-            cgmlTransitions.append(
-                CGMLTransition(
-                    source=edge.source,
-                    target=edge.target,
-                    actions='',
-                    unknownDatanodes=self._toList(
+                       cgmlTransitions: Dict[str, CGMLTransition]) -> None:
+            cgmlTransitions[edge.id] = CGMLTransition(
+                id=edge.id,
+                source=edge.source,
+                target=edge.target,
+                actions='',
+                unknownDatanodes=self._toList(
                         edge.data),
-                )
             )
 
-        cgmlTransitions: List[CGMLTransition] = []
+        cgmlTransitions: Dict[str, CGMLTransition] = {}
         if root.edge is not None:
             if isinstance(root.edge, Iterable):
                 for edge in root.edge:

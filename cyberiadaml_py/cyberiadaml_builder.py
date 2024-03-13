@@ -75,7 +75,8 @@ class CGMLBuilder:
             'G',
         )
         nodes: List[CGMLNode] = [*self._getStateNodes(elements.states),
-                                 *self._getNoteNodes(elements.notes),
+                                 *self._getNoteNodes(
+                                     list(elements.notes.values())),
                                  self._getMetaNode(
                                      elements.meta, elements.platform),
                                  *self._getComponentsNodes(elements.components)
@@ -88,7 +89,9 @@ class CGMLBuilder:
             nodes.append(
                 self._getInitialNode(elements.initial_state))
             edges.append(self._getInitialEdge(
-                elements.initial_state.id, elements.initial_state.target))
+                elements.initial_state.transitionId,
+                elements.initial_state.id,
+                elements.initial_state.target))
         self.scheme.graphml.graph.node = nodes
         self.scheme.graphml.graph.edge = edges
         scheme: CGML = RootModel[CGML](self.scheme).model_dump(
@@ -104,7 +107,7 @@ class CGMLBuilder:
                             components: List[CGMLComponent]) -> List[CGMLEdge]:
         edges: List[CGMLEdge] = []
         for component in components:
-            edges.append(CGMLEdge('', component.id))
+            edges.append(CGMLEdge(f'edge_{component.id}', '', component.id))
         return edges
 
     def _getComponentsNodes(self,
@@ -119,16 +122,20 @@ class CGMLBuilder:
             nodes.append(node)
         return nodes
 
-    def _getInitialEdge(self, initId: str, target: str) -> CGMLEdge:
+    def _getInitialEdge(self, transitionId: str,
+                        initId: str, target: str) -> CGMLEdge:
         return CGMLEdge(
+            transitionId,
             initId,
             target
         )
 
-    def _getEdges(self, transitions: List[CGMLTransition]) -> List[CGMLEdge]:
+    def _getEdges(self,
+                  transitions: Dict[str, CGMLTransition]) -> List[CGMLEdge]:
         edges: List[CGMLEdge] = []
-        for transition in transitions:
-            edge: CGMLEdge = CGMLEdge(transition.source, transition.target)
+        for transition in list(transitions.values()):
+            edge: CGMLEdge = CGMLEdge(
+                transition.id, transition.source, transition.target)
             data: List[CGMLDataNode] = []
             data.append(self._actionsToData(transition.actions))
             if transition.color is not None:

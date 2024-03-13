@@ -73,6 +73,7 @@ class CGMLInitialState:
     position: x, y properties of data node with 'dGeometry' key.
     """
 
+    transitionId: str
     id: str
     target: str
     position: Optional[Point] = None
@@ -93,6 +94,7 @@ class CGMLTransition:
         is not included in the type.
     """
 
+    id: str
     source: str
     target: str
     actions: str
@@ -140,11 +142,11 @@ class CGMLElements:
     """
 
     states: Dict[str, CGMLState]
-    transitions: List[CGMLTransition]
+    transitions: Dict[str, CGMLTransition]
     components: List[CGMLComponent]
     platform: str
     meta: str
     format: str
     keys: AwailableKeys
-    notes: List[CGMLNote]
+    notes: Dict[str, CGMLNote]
     initial_state: Optional[CGMLInitialState] = None
