@@ -12,3 +12,5 @@ the GNU Free Documentation License (version 1.3).
 * `xmltodict`
 * `pydantic`
 * `types-xmltodict`
+
+**Github: https://github.com/kruzhok-team/cyberiadaml-py**
