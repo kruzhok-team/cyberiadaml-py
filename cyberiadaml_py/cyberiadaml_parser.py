@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 
 from xmltodict import parse
 
+from cyberiadaml_py.types.elements import CGMLMeta
+
 try:
     from .types.common import Point, Rectangle
     from .types.cgml_scheme import (
@@ -61,12 +63,19 @@ class CGMLParser:
         return CGMLElements(
             states={},
             transitions={},
+            finals={},
+            choices={},
+            initial_states={},
+            standardVersion='',
             components=[],
             platform='',
             format='',
-            meta='',
+            meta=CGMLMeta(
+                id='',
+                values={},
+            ),
             keys=defaultdict(),
-            notes={}
+            notes={},
         )
 
     def parseCGML(self, graphml: str) -> CGMLElements:
