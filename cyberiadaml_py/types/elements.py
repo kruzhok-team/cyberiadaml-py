@@ -8,6 +8,7 @@ from typing import (
     TypeAlias
 )
 
+from pydantic import Field
 from pydantic.dataclasses import dataclass
 
 try:
@@ -17,9 +18,10 @@ except ImportError:
     from cyberiadaml_py.types.cgml_scheme import CGMLDataNode, CGMLKeyNode
     from cyberiadaml_py.types.common import Point, Rectangle
 #  { node: ['dGeometry', ...], edge: ['dData', ...]}
-AwailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
+AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
 CGMLVertexType = Literal['choice', 'initial', 'final', 'terminate']
+CGMLNoteType = Literal['formal', 'informal']
 
 
 @dataclass
@@ -35,7 +37,7 @@ class CGMLBaseVertex:
 
     type: CGMLVertexType
     data: Optional[str] = None
-    position: Optional[Point] = None
+    position: Optional[Point | Rectangle] = None
     parent: Optional[str] = None
 
 
@@ -59,9 +61,9 @@ class CGMLState:
 
     name: str
     actions: str
-    unknownDatanodes: List[CGMLDataNode]
+    unknown_datanodes: List[CGMLDataNode]
     parent: Optional[str] = None
-    bounds: Optional[Rectangle] = None
+    bounds: Optional[Rectangle | Point] = None
     color: Optional[str] = None
 
 
@@ -77,7 +79,7 @@ class CGMLComponent:
 
     id: str
     type: str
-    parameters: str
+    parameters: Dict[str, str]
 
 
 @dataclass
@@ -123,10 +125,10 @@ class CGMLTransition:
     source: str
     target: str
     actions: str
-    unknownDatanodes: List[CGMLDataNode]
+    unknown_datanodes: List[CGMLDataNode]
     color: Optional[str] = None
-    position: Optional[Point] = None
-    labelPosition: Optional[Point] = None
+    position: List[Point] = Field(default_factory=list)
+    label_position: Optional[Point] = None
     pivot: Optional[str] = None
 
 
@@ -136,14 +138,20 @@ class CGMLNote:
     Dataclass with infromation about note.
 
     Note is <node> containing data node with key 'dNote'
+    type: content of <data key="dNote">
+    text: content of <data key="dData">
+    name: content of <data key="dName">
+    position: properties <data key="dGeometry">'s child\
+        <point> or <rect> 
     unknownDatanodes: all datanodes, whose information\
         is not included in the type.
     """
 
-    position: Point
+    name: str
+    position: Point | Rectangle
     text: str
     type: str
-    unknownDatanodes: List[CGMLDataNode]
+    unknown_datanodes: List[CGMLDataNode]
 
 
 @dataclass
@@ -200,8 +208,7 @@ class CGMLElements:
     meta: content of data node\
         with key 'dData' inside meta-node.
     format: content of data node with key 'gFormat'.
-    platform: content of data node with key 'dName'\
-        inside <node id="">
+    platform: content of meta-data
     keys: dict of KeyNodes, where the key is 'for' attribute.\
         Example: { "node": [KeyNode, ...], "edge": [...] }
     """
@@ -213,7 +220,7 @@ class CGMLElements:
     platform: str
     meta: CGMLMeta
     format: str
-    keys: AwailableKeys
+    keys: AvailableKeys
     notes: Dict[str, CGMLNote]
     initial_states: Dict[str, CGMLInitialState]
     finals: Dict[str, CGMLFinal]

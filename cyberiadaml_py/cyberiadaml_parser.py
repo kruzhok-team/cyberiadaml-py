@@ -1,48 +1,45 @@
 """The module implements parsing CyberiadaML schemes."""
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import Any, Dict, List, Optional
+from typing import (
+    DefaultDict,
+    Dict,
+    List,
+    Optional,
+    get_args,
+    TypeGuard,
+    TypeVar
+)
 
 from xmltodict import parse
+from cyberiadaml_py.types.cgml_scheme import (
+    CGMLDataNode,
+    CGMLKeyNode,
+    CGMLPointNode,
+    CGML,
+    CGMLEdge,
+    CGMLGraph,
+    CGMLNode
+)
+from cyberiadaml_py.types.elements import (
+    CGMLBaseVertex,
+    CGMLChoice,
+    CGMLFinal,
+    CGMLMeta,
+    CGMLNoteType,
+    CGMLTerminate,
+    CGMLVertexType,
+    CGMLComponent,
+    CGMLElements,
+    AvailableKeys,
+    CGMLInitialState,
+    CGMLNote,
+    CGMLState,
+    CGMLTransition
+)
+from cyberiadaml_py.types.common import Point, Rectangle
 
-from cyberiadaml_py.types.elements import CGMLMeta
-
-try:
-    from .types.common import Point, Rectangle
-    from .types.cgml_scheme import (
-        CGML,
-        CGMLDataNode,
-        CGMLEdge,
-        CGMLGraph,
-        CGMLNode
-    )
-    from .types.elements import (
-        CGMLComponent,
-        CGMLElements,
-        AwailableKeys,
-        CGMLInitialState,
-        CGMLNote,
-        CGMLState,
-        CGMLTransition
-    )
-except ImportError:
-    from cyberiadaml_py.types.cgml_scheme import (
-        CGML,
-        CGMLDataNode,
-        CGMLEdge,
-        CGMLGraph,
-        CGMLNode
-    )
-    from cyberiadaml_py.types.common import Point, Rectangle
-    from cyberiadaml_py.types.elements import (
-        CGMLComponent,
-        CGMLElements,
-        AwailableKeys,
-        CGMLInitialState,
-        CGMLNote,
-        CGMLState,
-        CGMLTransition
-    )
+ListType = TypeVar('ListType')
 
 
 class CGMLParserException(Exception):
@@ -65,9 +62,10 @@ class CGMLParser:
             transitions={},
             finals={},
             choices={},
+            terminates={},
             initial_states={},
             standardVersion='',
-            components=[],
+            components={},
             platform='',
             format='',
             meta=CGMLMeta(
@@ -78,7 +76,7 @@ class CGMLParser:
             notes={},
         )
 
-    def parseCGML(self, graphml: str) -> CGMLElements:
+    def parse_cgml(self, graphml: str) -> CGMLElements:
         """
         Parse CyberiadaGraphml scheme.
 
@@ -92,207 +90,294 @@ class CGMLParser:
             CGMLParserException('Data node with key "gFormat" is empty'):\
                 content of <data key='gFormat'> is None
             CGMLParserException('Data node with key "gFormat" is missing'):\
-                <data key='gFormat'> doesn't exist in graphml->data.s
+                <data key='gFormat'> doesn't exist in graphml->data
             CGMLParserException('No position for note!):\
                 <node>, that contains <data key='dNote'>, graphml
-                    doesn't contains <data key='dGeometry' x='...' y='...'>
-            CGMLParserException('Unknown key "key" for "node-type",\
-                                    did you forgot ...'):\
-                                        using an undeclarated key
-            CGMLParserException('<node-type> with key\
-                dGeometry doesnt have x, y properties'): \
-                    <data key='dGeometry'> must contain at least x and y\
-                        properties (width and height are additional)
+                    doesn't contains <data key='dGeometry'>
             ValidationError(...): pydatinc's validation error, occurs when\
                 the scheme doesn't match the format.
         """
         self.elements = CGMLParser.createEmptyElements()
         cgml = CGML(**parse(graphml))
-        self.elements.format = self._getFormat(cgml)
-        if self.elements.format != 'Cyberiada-GraphML':
-            raise CGMLParserException(
-                ('Format must be '
-                 f'Cyberiada-GraphML, but got {self.elements.format}'))
-        self.elements.keys = self._getAwaialbleKeys(cgml)
-        graphs: List[CGMLGraph] = self._toList(cgml.graphml.graph)
+        format: str = self._get_format(cgml)
+        keys: DefaultDict[str, List[CGMLKeyNode]
+                          ] = self._get_available_keys(cgml)
+        platform = ''
+        standard_version = ''
+        graphs: List[CGMLGraph] = self._to_list(cgml.graphml.graph)
         states: Dict[str, CGMLState] = {}
         transitions: Dict[str, CGMLTransition] = {}
         notes: Dict[str, CGMLNote] = {}
+        terminates: Dict[str, CGMLTerminate] = {}
+        finals: Dict[str, CGMLFinal] = {}
+        choices: Dict[str, CGMLChoice] = {}
+        initials: Dict[str, CGMLInitialState] = {}
+        meta: CGMLMeta = CGMLMeta(
+            id='',
+            values={}
+        )
+        components: Dict[str, CGMLComponent] = {}
         for graph in graphs:
-            states = states | self._parseGraphNodes(graph)
-            transitions = transitions | self._parseGraphEdges(graph)
-        try:
-            self.elements.platform, self.elements.meta = self._getMeta(
-                states[''])
-            del states['']
-        except KeyError:
-            raise CGMLParserException('Meta node is missing')
-        for stateId in list(states.keys()):
-            state, isInit = self._processStateData(states[stateId], stateId)
+            states = states | self._parse_graph_nodes(graph)
+            transitions = transitions | self._parse_graph_edges(graph)
+        for state_id in list(states.keys()):
+            state = self._process_state_data(states[state_id])
             if isinstance(state, CGMLNote):
-                notes[state.id] = state
-                del states[stateId]
+                note = state
+                if note.type == 'informal':
+                    notes[state_id] = state
+                    del states[state_id]
+                    continue
+                match note.name:
+                    case 'CGML_META':
+                        meta.id = state_id
+                        meta.values = self._parse_meta(note.text)
+                        try:
+                            platform = meta.values['platform']
+                            standard_version = meta.values['standardVersion']
+                        except KeyError:
+                            raise CGMLParserException(
+                                'No platform or standardVersion.')
+                    case 'CGML_COMPONENT':
+                        component_parameters: Dict[str, str] = (
+                            self._parse_meta(
+                                note.text
+                            )
+                        )
+                        try:
+                            component_id = component_parameters['id']
+                            component_type = component_parameters['type']
+                            del component_parameters['id']
+                            del component_parameters['type']
+                        except KeyError:
+                            raise CGMLParserException(
+                                "Component doesn't have type or id.")
+                        components[state_id] = CGMLComponent(
+                            id=component_id,
+                            type=component_type,
+                            parameters=component_parameters
+                        )
             elif isinstance(state, CGMLState):
-                if isInit:
-                    if self.elements.initial_state is not None:
-                        raise CGMLParserException('Double init states')
-                    position: Point | None = None
-                    if state.bounds is not None:
-                        position = Point(state.bounds.x, state.bounds.y)
-                    self.elements.initial_state = CGMLInitialState(
-                        transitionId='', id=stateId,
-                        target='', position=position)
-                    del states[stateId]
-                else:
-                    states[stateId] = state
+                states[state_id] = state
+            elif isinstance(state, CGMLBaseVertex):
+                vertex = state
+                match vertex.type:
+                    case 'initial':
+                        initials[state_id] = CGMLInitialState(
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
+                        )
+                    case 'final':
+                        finals[state_id] = CGMLFinal(
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
+                        )
+                    case 'choice':
+                        choices[state_id] = CGMLChoice(
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
+                        )
+                    case 'terminate':
+                        terminates[state_id] = CGMLTerminate(
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
+                        )
             else:
                 raise CGMLParserException(
                     'Internal error: Unknown type of node')
-        # TODO Вынести в отдельные функции
-        componentIds: List[str] = []
+
+        component_ids: List[str] = []
         for transition in list(transitions.values()):
-            processedTransition: CGMLTransition = self._processEdgeData(
+            processedTransition: CGMLTransition = self._process_edge_data(
                 transition)
-            if (self.elements.initial_state is not None and
-                    (processedTransition.source ==
-                        self.elements.initial_state.id)):
-                self.elements.initial_state.target = processedTransition.target
-                self.elements.initial_state\
-                    .transitionId = processedTransition.id
-            elif transition.source == '':
-                componentIds.append(transition.target)
+            if transition.source == meta.id:
+                component_ids.append(transition.id)
             else:
-                self.elements.transitions[transition.id] = processedTransition
-        for componentId in componentIds:
-            componentState: CGMLState | None = states.get(componentId)
-            if componentState is None:
-                raise CGMLParserException('Unknown component node')
-            self.elements.components.append(CGMLComponent(
-                id=componentId,
-                parameters=componentState.actions
-            ))  # TODO: raise exception if smth else
-            del states[componentId]
+                transitions[transition.id] = processedTransition
+
+        for component_id in component_ids:
+            del transitions[component_id]
         self.elements.states = states
         self.elements.notes = notes
+        self.elements.choices = choices
+        self.elements.finals = finals
+        self.elements.initial_states = initials
+        self.elements.keys = keys
+        self.elements.transitions = transitions
+        self.elements.format = format
+        self.elements.platform = platform
+        self.elements.standardVersion = standard_version
         return self.elements
 
-    def _getDataContent(self, dataNode: CGMLDataNode) -> str:
-        return dataNode.content if dataNode.content is not None else ''
+    def _parse_meta(self, meta: str) -> Dict[str, str]:
+        splited_parameters: List[str] = meta.split('\n\n')
+        parameters: Dict[str, str] = {}
+        for parameter in splited_parameters:
+            parameter_name, parameter_value = parameter.split('/')
+            parameters[parameter_name] = parameter_value
+        return parameters
 
-    def _processEdgeData(self, transition: CGMLTransition) -> CGMLTransition:
-        newTransition = CGMLTransition(
+    def _get_data_content(self, data_node: CGMLDataNode) -> str:
+        return data_node.content if data_node.content is not None else ''
+
+    def _process_edge_data(self, transition: CGMLTransition) -> CGMLTransition:
+        new_transition = CGMLTransition(
+            position=[],
             id=transition.id,
             source=transition.source,
             target=transition.target,
             actions=transition.actions,
-            unknownDatanodes=[]
+            unknown_datanodes=[]
         )
-        for dataNode in transition.unknownDatanodes:
-            for keyNode in self.elements.keys['edge']:
-                if dataNode.key == keyNode.id:
-                    break
-            else:
-                raise CGMLParserException(
-                    (f'Unknown key {dataNode.key} for edge, did you forgot: '
-                     f'"<key id="{dataNode.key}" for="edge"/>"?'))
-            match dataNode.key:
+        for data_node in transition.unknown_datanodes:
+            match data_node.key:
                 case 'dData':
-                    newTransition.actions = self._getDataContent(dataNode)
+                    new_transition.actions = self._get_data_content(data_node)
                 case 'dGeometry':
-                    if dataNode.x is None or dataNode.y is None:
+                    if data_node.point is None:
                         raise CGMLParserException(
                             'Edge with key dGeometry\
-                                doesnt have x, y properties')
-                    newTransition.position = Point(
-                        float(dataNode.x), float(dataNode.y))
+                                doesnt have <point> node.')
+                    points: List[CGMLPointNode] = (
+                        self._to_list(data_node.point)
+                    )
+                    for point in points:
+                        new_transition.position.append(Point(
+                            x=point.x, y=point.y))
                 case 'dColor':
-                    newTransition.color = self._getDataContent(dataNode)
+                    new_transition.color = self._get_data_content(data_node)
                 case _:
-                    newTransition.unknownDatanodes.append(dataNode)
-        return newTransition
+                    new_transition.unknown_datanodes.append(data_node)
+        return new_transition
 
-    def _processStateData(self,
-                          state: CGMLState,
-                          stateId: str) -> tuple[CGMLState | CGMLNote, bool]:
+    def __is_note_type(self, value: str) -> TypeGuard[CGMLNoteType]:
+        return value in get_args(CGMLNoteType)
+
+    def _get_note_type(self, value: str) -> CGMLNoteType:
+        if self.__is_note_type(value):
+            return value
+        raise CGMLParserException(
+            f'Unknown type of note! Expect {get_args(CGMLNoteType)}.')
+
+    def __is_vertex_type(self, value: str) -> TypeGuard[CGMLVertexType]:
+        return value in get_args(CGMLVertexType)
+
+    def _get_vertex_type(self, note_name: str) -> CGMLVertexType:
+        if self.__is_vertex_type(note_name):
+            return note_name
+        raise CGMLParserException(
+            f'Unknown type of formal note! Expect \
+                {get_args(CGMLVertexType)}')
+
+    def _process_state_data(self,
+                            state: CGMLState
+                            ) -> CGMLState | CGMLNote | CGMLBaseVertex:
         """Return tuple[CGMLState | CGMLNote, isInit]."""
         # no mutations? B^)
-        newState = CGMLState(
+        new_state = CGMLState(
             name=state.name,
             actions=state.actions,
-            unknownDatanodes=[],
+            unknown_datanodes=[],
             bounds=state.bounds,
             parent=state.parent
         )
-        isNote: bool = False
-        isInit: bool = False
-        for dataNode in state.unknownDatanodes:
-            match dataNode.key:
+        note_type: Optional[CGMLNoteType] = None
+        vertex_type: Optional[CGMLVertexType] = None
+        is_note = False
+        is_vertex = False
+        for data_node in state.unknown_datanodes:
+            match data_node.key:
                 case 'dName':
-                    newState.name = self._getDataContent(dataNode)
+                    new_state.name = self._get_data_content(data_node)
                 case 'dGeometry':
-                    if dataNode.x is None or dataNode.y is None:
+                    if data_node.rect is None and data_node.point is None:
                         raise CGMLParserException(
                             'Node with key dGeometry\
-                                doesnt have x, y properties')
-                    x: float = float(dataNode.x)
-                    y: float = float(dataNode.y)
+                                doesnt have rect or point child')
+                    if data_node.point is not None:
+                        if isinstance(data_node.point, list):
+                            raise CGMLParserException(
+                                "State doesn't support several points.")
+                        new_state.bounds = Point(x=data_node.point.x,
+                                                 y=data_node.point.y)
+                        continue
 
-                    if (dataNode.width is not None and
-                            dataNode.height is not None):
-                        newState.bounds = Rectangle(
-                            x=x,
-                            y=y,
-                            width=float(dataNode.width),
-                            height=float(dataNode.height)
+                    if (data_node.rect is not None):
+                        new_state.bounds = Rectangle(
+                            x=data_node.rect.x,
+                            y=data_node.rect.y,
+                            width=data_node.rect.width,
+                            height=data_node.rect.height
                         )
-                    else:
-                        newState.bounds = Rectangle(
-                            x=x,
-                            y=y
-                        )
+                case 'dVertex':
+                    is_vertex = True
+                    vertex_type = self._get_vertex_type(
+                        self._get_data_content(data_node))
                 case 'dData':
-                    newState.actions = self._getDataContent(dataNode)
+                    new_state.actions = self._get_data_content(data_node)
                 case 'dNote':
-                    isNote = True
-                    newState.actions = self._getDataContent(dataNode)
-                case 'dInitial':
-                    isInit = True
-                    if isNote:
-                        raise CGMLParserException('dInit in dNote')
+                    is_note = True
+                    if data_node.content is None:
+                        note_type = 'informal'
+                    else:
+                        note_type = self._get_note_type(
+                            self._get_data_content(data_node))
                 case 'dColor':
-                    newState.color = self._getDataContent(dataNode)
+                    new_state.color = self._get_data_content(data_node)
                 case _:
-                    newState.unknownDatanodes.append(dataNode)
-        if isNote:
-            bounds: Rectangle | None = newState.bounds
+                    new_state.unknown_datanodes.append(data_node)
+        if is_note and note_type is not None:
+            bounds: Optional[Rectangle | Point] = new_state.bounds
+            x = 0.
+            y = 0.
             if bounds is None:
-                raise CGMLParserException('No position for note!')
+                if note_type == 'informal':
+                    raise CGMLParserException('No position for note!')
             else:
-                return (CGMLNote(
-                    id=stateId,
-                    position=Point(
-                        x=bounds.x,
-                        y=bounds.y,
-                    ),
-                    text=newState.actions,
-                    unknownDatanodes=newState.unknownDatanodes
-                ), False)
-        return (newState, isInit)
+                x = bounds.x
+                y = bounds.y
+            return CGMLNote(
+                name=new_state.name,
+                position=Point(
+                    x=x,
+                    y=y,
+                ),
+                type=note_type,
+                text=new_state.actions,
+                unknown_datanodes=new_state.unknown_datanodes
+            )
+        if is_vertex and vertex_type is not None:
+            return CGMLBaseVertex(
+                type=vertex_type,
+                position=new_state.bounds,
+            )
+        return new_state
 
-    def _getMeta(self, metaNode: CGMLState) -> tuple[str, str]:
+    def _get_meta(self, metaNode: CGMLState) -> tuple[str, str]:
         """Return tuple[platfrom, meta]."""
-        dataNodes: List[CGMLDataNode] = self._toList(metaNode.unknownDatanodes)
+        dataNodes: List[CGMLDataNode] = self._to_list(
+            metaNode.unknown_datanodes)
         platform: str = ''
         meta: str = ''
-        for dataNode in dataNodes:
-            match dataNode.key:
+        for data_node in dataNodes:
+            match data_node.key:
                 case 'dName':
-                    platform = self._getDataContent(dataNode)
+                    platform = self._get_data_content(data_node)
                 case 'dData':
-                    meta = self._getDataContent(dataNode)
+                    meta = self._get_data_content(data_node)
         return platform, meta
 
-    def _toList(self, nodes: List | None | Any) -> List:
+    def _to_list(self,
+                 nodes: List[ListType] | None | ListType
+                 ) -> List[ListType]:
         if nodes is None:
             return []
         if isinstance(nodes, list):
@@ -300,7 +385,7 @@ class CGMLParser:
         else:
             return [nodes]
 
-    def _parseGraphEdges(self, root: CGMLGraph) -> Dict[str, CGMLTransition]:
+    def _parse_graph_edges(self, root: CGMLGraph) -> Dict[str, CGMLTransition]:
         def _parseEdge(edge: CGMLEdge,
                        cgmlTransitions: Dict[str, CGMLTransition]) -> None:
             cgmlTransitions[edge.id] = CGMLTransition(
@@ -308,7 +393,7 @@ class CGMLParser:
                 source=edge.source,
                 target=edge.target,
                 actions='',
-                unknownDatanodes=self._toList(
+                unknown_datanodes=self._to_list(
                         edge.data),
             )
 
@@ -321,21 +406,23 @@ class CGMLParser:
                 _parseEdge(root.edge, cgmlTransitions)
         return cgmlTransitions
 
-    def _parseGraphNodes(self,
-                         root: CGMLGraph,
-                         parent: Optional[str] = None) -> Dict[str, CGMLState]:
+    def _parse_graph_nodes(
+        self,
+        root: CGMLGraph,
+        parent: Optional[str] = None
+    ) -> Dict[str, CGMLState]:
         def parseNode(node: CGMLNode) -> Dict[str, CGMLState]:
             cgmlStates: Dict[str, CGMLState] = {}
             cgmlStates[node.id] = CGMLState(
                 name='',
                 actions='',
-                unknownDatanodes=self._toList(node.data),
+                unknown_datanodes=self._to_list(node.data),
             )
             if parent is not None:
                 cgmlStates[node.id].parent = parent
-            graphs: List[CGMLGraph] = self._toList(node.graph)
+            graphs: List[CGMLGraph] = self._to_list(node.graph)
             for graph in graphs:
-                cgmlStates = cgmlStates | self._parseGraphNodes(
+                cgmlStates = cgmlStates | self._parse_graph_nodes(
                     graph, node.id)
 
             return cgmlStates
@@ -349,13 +436,9 @@ class CGMLParser:
                 cgmlStates = cgmlStates | parseNode(root.node)
         return cgmlStates
 
-    def _checkDataNodeKey(self, node_name: str, key: str,
-                          awaialableKeys: AwailableKeys) -> bool:
-        return key in awaialableKeys[node_name]
-
     # key nodes to comfortable dict
-    def _getAwaialbleKeys(self, cgml: CGML) -> AwailableKeys:
-        keyNodeDict: AwailableKeys = defaultdict(lambda: [])
+    def _get_available_keys(self, cgml: CGML) -> AvailableKeys:
+        keyNodeDict: AvailableKeys = defaultdict(lambda: [])
         if cgml.graphml.key is not None:
             if isinstance(cgml.graphml.key, Iterable):
                 for keyNode in cgml.graphml.key:
@@ -364,13 +447,13 @@ class CGMLParser:
                 keyNodeDict[cgml.graphml.key.for_].append(cgml.graphml.key)
         return keyNodeDict
 
-    def _getFormat(self, cgml: CGML) -> str:
+    def _get_format(self, cgml: CGML) -> str:
         # TODO: DRY
         if isinstance(cgml.graphml.data, Iterable):
-            for dataNode in cgml.graphml.data:
-                if dataNode.key == 'gFormat':
-                    if dataNode.content is not None:
-                        return dataNode.content
+            for data_node in cgml.graphml.data:
+                if data_node.key == 'gFormat':
+                    if data_node.content is not None:
+                        return data_node.content
                     raise CGMLParserException(
                         'Data node with key "gFormat" is empty')
         else:

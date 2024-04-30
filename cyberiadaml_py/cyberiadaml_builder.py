@@ -1,5 +1,5 @@
 """Module implements building CyberiadaML schemes."""
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, get_args
 
 from xmltodict import unparse
 from pydantic import RootModel
@@ -16,7 +16,7 @@ try:
     )
     from cyberiadaml_py.types.common import Point, Rectangle
     from cyberiadaml_py.types.elements import (
-        AwailableKeys,
+        AvailableKeys,
         CGMLComponent,
         CGMLElements,
         CGMLInitialState,
@@ -36,7 +36,7 @@ except ImportError:
     )
     from .types.common import Point, Rectangle
     from .types.elements import (
-        AwailableKeys,
+        AvailableKeys,
         CGMLComponent,
         CGMLElements,
         CGMLInitialState,
@@ -253,7 +253,7 @@ class CGMLBuilder:
     def _getFormatNode(self, format: str) -> CGMLDataNode:
         return CGMLDataNode('gFormat', format)
 
-    def _getKeys(self, awaialaibleKeys: AwailableKeys) -> List[CGMLKeyNode]:
+    def _getKeys(self, awaialaibleKeys: AvailableKeys) -> List[CGMLKeyNode]:
         keyNodes: List[CGMLKeyNode] = []
         for key in list(awaialaibleKeys.keys()):
             keyNodes.extend(awaialaibleKeys[key])

@@ -31,7 +31,7 @@ class CGMLDataNode:
     key: str = Field(alias='@key')
     content: Optional[str] = Field(default=None, alias='#text')
     rect: Optional[CGMLRectNode] = None
-    point: Optional[CGMLPointNode] = None
+    point: Optional[CGMLPointNode | List[CGMLPointNode]] = None
 
 
 @dataclass(config=ConfigDict(extra='allow'))
@@ -57,7 +57,7 @@ class CGMLEdge:
 @dataclass(config=ConfigDict(extra='forbid'))
 class CGMLGraph:
     """The type represents <graph> node."""
-
+    data: Optional[List[CGMLDataNode] | CGMLDataNode] = None
     edgedefault: Optional[str] = Field(alias='@edgedefault', default=None)
     id: Optional[str] = Field(alias='@id', default=None)
     node: Optional[List['CGMLNode'] | 'CGMLNode'] = None
