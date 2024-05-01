@@ -56,8 +56,8 @@ class CGMLBuilder:
 
     def build(self, elements: CGMLElements) -> str:
         """Build CGML scheme from elements."""
-        self.scheme.graphml.key = self._getKeys(elements.keys)
-        self.scheme.graphml.data = self._getFormatNode(elements.format)
+        self.scheme.graphml.key = self._get_keys(elements.keys)
+        self.scheme.graphml.data = self._get_format_node(elements.format)
         self.scheme.graphml.graph = CGMLGraph(
             'directed',
             'G',
@@ -81,19 +81,22 @@ class CGMLBuilder:
         )
         vertexes_nodes: List[CGMLNode] = list(
             chain(initials, finals, terminates, choices))
-        states_with_vertexes = self._add_vertexes_to_states(
-            vertexes_nodes, vertexes, cgml_states)
-
+        states_with_vertexes, independent_vertexes = (
+            self._add_vertexes_to_states(
+                vertexes_nodes, vertexes, cgml_states)
+        )
         nodes: List[CGMLNode] = [
+            *independent_vertexes,
             *states_with_vertexes.values(),
             self._get_meta_node(
                 elements.meta,
                 elements.platform,
                 elements.standard_version
             ),
-            *self._get_components_nodes(elements.components)
+            *self._get_components_nodes(elements.components),
+            *self._get_note_nodes(elements.notes)
         ]
-        edges: List[CGMLEdge] = self._getEdges(elements.transitions)
+        edges: List[CGMLEdge] = self._get_edges(elements.transitions)
         self.scheme.graphml.graph.node = nodes
         self.scheme.graphml.graph.edge = edges
         scheme: CGML = RootModel[CGML](self.scheme).model_dump(
@@ -125,11 +128,13 @@ class CGMLBuilder:
         vertex_nodes: List[CGMLNode],
         vertexes: Dict[str, Vertex],
         cgml_states: Dict[str, CGMLNode]
-    ) -> Dict[str, CGMLNode]:
+    ) -> tuple[Dict[str, CGMLNode], List[CGMLNode]]:
         new_states = deepcopy(cgml_states)
+        independent_vertexes: List[CGMLNode] = []
         for node in vertex_nodes:
             vertex: CGMLBaseVertex = vertexes[node.id]
             if vertex.parent is None:
+                independent_vertexes.append(node)
                 continue
             parent_node: CGMLNode = new_states[vertex.parent]
             if parent_node.graph is None:
@@ -141,14 +146,7 @@ class CGMLBuilder:
                 graph_nodes.append(node)
                 parent_node.graph.node = graph_nodes
             new_states[vertex.parent] = parent_node
-        return new_states
-
-    def _getComponentsEdges(self,
-                            components: List[CGMLComponent]) -> List[CGMLEdge]:
-        edges: List[CGMLEdge] = []
-        for component in components:
-            edges.append(CGMLEdge(f'edge_{component.id}', '', component.id))
-        return edges
+        return new_states, independent_vertexes
 
     def _get_components_nodes(self,
                               components: Dict[str, CGMLComponent]
@@ -169,8 +167,8 @@ class CGMLBuilder:
             nodes.append(node)
         return nodes
 
-    def _getEdges(self,
-                  transitions: Dict[str, CGMLTransition]) -> List[CGMLEdge]:
+    def _get_edges(self,
+                   transitions: Dict[str, CGMLTransition]) -> List[CGMLEdge]:
         edges: List[CGMLEdge] = []
         for transition in list(transitions.values()):
             edge: CGMLEdge = CGMLEdge(
@@ -181,6 +179,8 @@ class CGMLBuilder:
                 data.append(self._colorToData(transition.color))
             if isinstance(transition.position, Point):
                 data.append(self._point_to_data(transition.position))
+            if isinstance(transition.label_position, Point):
+                data.append(self._point_label(transition.label_position))
             data.extend(transition.unknown_datanodes)
             edge.data = data
             edges.append(edge)
@@ -230,7 +230,7 @@ class CGMLBuilder:
         meta_parameters: str = self._get_actions_string(
             meta.values | {
                 'platform': platform,
-                'standard_version': standard_version
+                'standardVersion': standard_version
             }
         )
         print(meta_parameters)
@@ -244,7 +244,8 @@ class CGMLBuilder:
         nodes: List[CGMLNode] = []
         for note_id, note in notes.items():
             data: List[CGMLDataNode] = []
-            data.append(self._note_to_data(note.text))
+            data.append(self._get_note_datanode('informal'))
+            data.append(self._actions_to_data(note.text))
             if isinstance(note.position, Point):
                 data.append(self._point_to_data(note.position))
             else:
@@ -256,12 +257,13 @@ class CGMLBuilder:
             ))
         return nodes
 
+    def _point_label(self, point: Point) -> CGMLDataNode:
+        return CGMLDataNode(
+            'dLabelGeometry', None, None, CGMLPointNode(point.x, point.y))
+
     def _point_to_data(self, point: Point) -> CGMLDataNode:
         return CGMLDataNode(
             'dGeometry', None, None, CGMLPointNode(point.x, point.y))
-
-    def _note_to_data(self, note_information: str) -> CGMLDataNode:
-        return CGMLDataNode('dNote', note_information)
 
     def _get_state_nodes(self,
                          states: Dict[str, CGMLState]) -> Dict[str, CGMLNode]:
@@ -330,10 +332,10 @@ class CGMLBuilder:
             )
         )
 
-    def _getFormatNode(self, format: str) -> CGMLDataNode:
+    def _get_format_node(self, format: str) -> CGMLDataNode:
         return CGMLDataNode('gFormat', format)
 
-    def _getKeys(self, awaialaibleKeys: AvailableKeys) -> List[CGMLKeyNode]:
+    def _get_keys(self, awaialaibleKeys: AvailableKeys) -> List[CGMLKeyNode]:
         keyNodes: List[CGMLKeyNode] = []
         for key in list(awaialaibleKeys.keys()):
             keyNodes.extend(awaialaibleKeys[key])

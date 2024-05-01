@@ -15,7 +15,6 @@ def blinker():
         data = f.read()
         return data
 
-
 def test_parse(blinker):
     parser = CGMLParser()
     elements = parser.parse_cgml(blinker)
@@ -23,10 +22,10 @@ def test_parse(blinker):
 
 @pytest.mark.parametrize(
     'path', [
-        # pytest.param(
-        #     'demos/CyberiadaFormat-Autoborder.graphml',
-        #     id='Bearloga'
-        # ),
+        pytest.param(
+            'demos/CyberiadaFormat-Autoborder.graphml',
+            id='Bearloga'
+        ),
         pytest.param(
             'demos/CyberiadaFormat-Blinker.graphml',
             id='ArduinoUno'
@@ -41,8 +40,8 @@ def test_parse_build_cycle(path: str) -> None:
     with open(path) as demo:
         data: str = demo.read()
         elements: CGMLElements = parser.parse_cgml(data)
-        pprint(elements)
-        print('-----------')
         builded: str = builder.build(elements)
+        with open('aaa.graphml', 'w') as f:
+            f.write(builded)
         new_elements: CGMLElements = parser.parse_cgml(builded)
         assert new_elements == elements

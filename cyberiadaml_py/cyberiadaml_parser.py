@@ -163,6 +163,7 @@ class CGMLParser:
                 states[state_id] = state
             elif isinstance(state, CGMLBaseVertex):
                 vertex = state
+                del states[state_id]
                 match vertex.type:
                     case 'initial':
                         initials[state_id] = CGMLInitialState(
@@ -207,6 +208,7 @@ class CGMLParser:
 
         for component_id in component_ids:
             del transitions[component_id]
+        self.elements.meta = meta
         self.elements.states = states
         self.elements.notes = notes
         self.elements.choices = choices
@@ -226,6 +228,7 @@ class CGMLParser:
         for parameter in splited_parameters:
             parameter_name, parameter_value = parameter.split('/')
             parameters[parameter_name] = parameter_value
+        print(parameters)
         return parameters
 
     def _get_data_content(self, data_node: CGMLDataNode) -> str:
@@ -257,6 +260,17 @@ class CGMLParser:
                             x=point.x, y=point.y))
                 case 'dColor':
                     new_transition.color = self._get_data_content(data_node)
+                case 'dLabelGeometry':
+                    if data_node.point is None:
+                        raise CGMLParserException(
+                            'Edge with key dGeometry\
+                                doesnt have <point> node.')
+                    if isinstance(data_node.point, list):
+                        raise CGMLParserException(
+                            'dLabelGeometry with several points!')
+                    point = data_node.point
+                    new_transition.label_position = Point(
+                        x=point.x, y=point.y)
                 case _:
                     new_transition.unknown_datanodes.append(data_node)
         return new_transition

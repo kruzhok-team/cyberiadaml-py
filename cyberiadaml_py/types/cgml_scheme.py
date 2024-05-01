@@ -1,6 +1,6 @@
 """Module contains types, that representing unprocessed CyberiadaML scheme."""
 
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ConfigDict
