@@ -11,14 +11,18 @@ from cyberiadaml_py.types.elements import (
 
 @pytest.fixture
 def blinker():
+    """Return raw Arduino-blinker scheme."""
     with open('demos/CyberiadaFormat-Blinker.graphml') as f:
         data = f.read()
         return data
 
+
 def test_parse(blinker):
+    """Test parse_cgml function."""
     parser = CGMLParser()
     elements = parser.parse_cgml(blinker)
     pprint(elements)
+
 
 @pytest.mark.parametrize(
     'path', [
@@ -41,7 +45,5 @@ def test_parse_build_cycle(path: str) -> None:
         data: str = demo.read()
         elements: CGMLElements = parser.parse_cgml(data)
         builded: str = builder.build(elements)
-        with open('aaa.graphml', 'w') as f:
-            f.write(builded)
         new_elements: CGMLElements = parser.parse_cgml(builded)
         assert new_elements == elements
