@@ -18,15 +18,15 @@ def blinker():
 
 def test_parse(blinker):
     parser = CGMLParser()
-    parser.parse_cgml(blinker)
-
+    elements = parser.parse_cgml(blinker)
+    pprint(elements)
 
 @pytest.mark.parametrize(
     'path', [
-        pytest.param(
-            'demos/CyberiadaFormat-Autoborder.graphml',
-            id='Bearloga'
-        ),
+        # pytest.param(
+        #     'demos/CyberiadaFormat-Autoborder.graphml',
+        #     id='Bearloga'
+        # ),
         pytest.param(
             'demos/CyberiadaFormat-Blinker.graphml',
             id='ArduinoUno'

@@ -1,6 +1,6 @@
 """Module contains types, that representing unprocessed CyberiadaML scheme."""
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pydantic.dataclasses import dataclass
 from pydantic import Field, ConfigDict
@@ -57,11 +57,12 @@ class CGMLEdge:
 @dataclass(config=ConfigDict(extra='forbid'))
 class CGMLGraph:
     """The type represents <graph> node."""
-    data: Optional[List[CGMLDataNode] | CGMLDataNode] = None
+
     edgedefault: Optional[str] = Field(alias='@edgedefault', default=None)
     id: Optional[str] = Field(alias='@id', default=None)
     node: Optional[List['CGMLNode'] | 'CGMLNode'] = None
     edge: Optional[List[CGMLEdge] | CGMLEdge] = None
+    data: Optional[List[CGMLDataNode] | CGMLDataNode] = None
 
 
 @dataclass(config=ConfigDict(extra='forbid'))

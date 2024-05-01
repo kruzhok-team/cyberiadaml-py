@@ -142,7 +142,7 @@ class CGMLNote:
     text: content of <data key="dData">
     name: content of <data key="dName">
     position: properties <data key="dGeometry">'s child\
-        <point> or <rect> 
+        <point> or <rect>
     unknownDatanodes: all datanodes, whose information\
         is not included in the type.
     """
@@ -152,6 +152,7 @@ class CGMLNote:
     text: str
     type: str
     unknown_datanodes: List[CGMLDataNode]
+    parent: str | None = None
 
 
 @dataclass
@@ -216,7 +217,7 @@ class CGMLElements:
     states: Dict[str, CGMLState]
     transitions: Dict[str, CGMLTransition]
     components: Dict[str, CGMLComponent]
-    standardVersion: str
+    standard_version: str
     platform: str
     meta: CGMLMeta
     format: str
@@ -226,3 +227,6 @@ class CGMLElements:
     finals: Dict[str, CGMLFinal]
     choices: Dict[str, CGMLChoice]
     terminates: Dict[str, CGMLTerminate]
+
+
+Vertex = CGMLFinal | CGMLChoice | CGMLInitialState | CGMLTerminate

@@ -12,6 +12,7 @@ from typing import (
 )
 
 from xmltodict import parse
+from cyberiadaml_py.utils import to_list
 from cyberiadaml_py.types.cgml_scheme import (
     CGMLDataNode,
     CGMLKeyNode,
@@ -64,7 +65,7 @@ class CGMLParser:
             choices={},
             terminates={},
             initial_states={},
-            standardVersion='',
+            standard_version='',
             components={},
             platform='',
             format='',
@@ -104,7 +105,7 @@ class CGMLParser:
                           ] = self._get_available_keys(cgml)
         platform = ''
         standard_version = ''
-        graphs: List[CGMLGraph] = self._to_list(cgml.graphml.graph)
+        graphs: List[CGMLGraph] = to_list(cgml.graphml.graph)
         states: Dict[str, CGMLState] = {}
         transitions: Dict[str, CGMLTransition] = {}
         notes: Dict[str, CGMLNote] = {}
@@ -214,7 +215,7 @@ class CGMLParser:
         self.elements.transitions = transitions
         self.elements.format = format
         self.elements.platform = platform
-        self.elements.standardVersion = standard_version
+        self.elements.standard_version = standard_version
         return self.elements
 
     def _parse_meta(self, meta: str) -> Dict[str, str]:
@@ -247,7 +248,7 @@ class CGMLParser:
                             'Edge with key dGeometry\
                                 doesnt have <point> node.')
                     points: List[CGMLPointNode] = (
-                        self._to_list(data_node.point)
+                        to_list(data_node.point)
                     )
                     for point in points:
                         new_transition.position.append(Point(
@@ -345,6 +346,7 @@ class CGMLParser:
                 x = bounds.x
                 y = bounds.y
             return CGMLNote(
+                parent=new_state.parent,
                 name=new_state.name,
                 position=Point(
                     x=x,
@@ -358,12 +360,13 @@ class CGMLParser:
             return CGMLBaseVertex(
                 type=vertex_type,
                 position=new_state.bounds,
+                parent=new_state.parent
             )
         return new_state
 
     def _get_meta(self, metaNode: CGMLState) -> tuple[str, str]:
         """Return tuple[platfrom, meta]."""
-        dataNodes: List[CGMLDataNode] = self._to_list(
+        dataNodes: List[CGMLDataNode] = to_list(
             metaNode.unknown_datanodes)
         platform: str = ''
         meta: str = ''
@@ -375,16 +378,6 @@ class CGMLParser:
                     meta = self._get_data_content(data_node)
         return platform, meta
 
-    def _to_list(self,
-                 nodes: List[ListType] | None | ListType
-                 ) -> List[ListType]:
-        if nodes is None:
-            return []
-        if isinstance(nodes, list):
-            return nodes
-        else:
-            return [nodes]
-
     def _parse_graph_edges(self, root: CGMLGraph) -> Dict[str, CGMLTransition]:
         def _parseEdge(edge: CGMLEdge,
                        cgmlTransitions: Dict[str, CGMLTransition]) -> None:
@@ -393,7 +386,7 @@ class CGMLParser:
                 source=edge.source,
                 target=edge.target,
                 actions='',
-                unknown_datanodes=self._to_list(
+                unknown_datanodes=to_list(
                         edge.data),
             )
 
@@ -416,11 +409,11 @@ class CGMLParser:
             cgmlStates[node.id] = CGMLState(
                 name='',
                 actions='',
-                unknown_datanodes=self._to_list(node.data),
+                unknown_datanodes=to_list(node.data),
             )
             if parent is not None:
                 cgmlStates[node.id].parent = parent
-            graphs: List[CGMLGraph] = self._to_list(node.graph)
+            graphs: List[CGMLGraph] = to_list(node.graph)
             for graph in graphs:
                 cgmlStates = cgmlStates | self._parse_graph_nodes(
                     graph, node.id)
