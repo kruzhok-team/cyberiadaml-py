@@ -59,8 +59,6 @@ class CGMLBuilder:
 
     def build(self, elements: CGMLElements) -> str:
         """Build CGML scheme from elements."""
-        self.scheme.graphml.key = self._get_keys(elements.keys)
-        self.scheme.graphml.data = self._get_format_node(elements.format)
         self.scheme.graphml.graph = CGMLGraph(
             'directed',
             'G',
@@ -101,6 +99,8 @@ class CGMLBuilder:
             *self._get_note_nodes(elements.notes)
         ]
         edges: List[CGMLEdge] = self._get_edges(elements.transitions)
+        self.scheme.graphml.data = self._get_format_node(elements.format)
+        self.scheme.graphml.key = self._get_keys(elements.keys)
         self.scheme.graphml.graph.node = nodes
         self.scheme.graphml.graph.edge = edges
         scheme: CGML = RootModel[CGML](self.scheme).model_dump(
