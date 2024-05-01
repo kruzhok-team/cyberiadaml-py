@@ -125,10 +125,11 @@ class CGMLParser:
             state = self._process_state_data(states[state_id])
             if isinstance(state, CGMLNote):
                 note = state
+                del states[state_id]
                 if note.type == 'informal':
                     notes[state_id] = state
-                    del states[state_id]
                     continue
+
                 match note.name:
                     case 'CGML_META':
                         meta.id = state_id
@@ -213,6 +214,7 @@ class CGMLParser:
         self.elements.initial_states = initials
         self.elements.keys = keys
         self.elements.transitions = transitions
+        self.elements.components = components
         self.elements.format = format
         self.elements.platform = platform
         self.elements.standard_version = standard_version
