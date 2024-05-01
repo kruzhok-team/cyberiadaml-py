@@ -44,15 +44,18 @@ class CGMLBuilder:
     """Contains functions to build CGML scheme."""
 
     def __init__(self) -> None:
-        self.scheme: CGML = CGMLBuilder.createEmptyscheme()
+        self.scheme: CGML = CGMLBuilder.create_empty_scheme()
 
     @staticmethod
-    def createEmptyscheme() -> CGML:
+    def create_empty_scheme() -> CGML:
         """Create empty CyberiadaML scheme."""
         return CGML(graphml=CGMLGraphml(
             [],
             'http://graphml.graphdrawing.org/xmlns',
         ))
+
+    def _get_state_machine_datanode(self) -> CGMLDataNode:
+        return CGMLDataNode('dStateMachine')
 
     def build(self, elements: CGMLElements) -> str:
         """Build CGML scheme from elements."""
@@ -61,6 +64,7 @@ class CGMLBuilder:
         self.scheme.graphml.graph = CGMLGraph(
             'directed',
             'G',
+            data=self._get_state_machine_datanode()
         )
         cgml_states: Dict[str, CGMLNode] = self._get_state_nodes(
             elements.states)
@@ -213,7 +217,6 @@ class CGMLBuilder:
         parameters = ''
         for name, value in values.items():
             parameters += f'{name}/{value}\n\n'
-        parameters += '\n\n'
         return parameters
 
     def _get_note_datanode(self, note_type: CGMLNoteType) -> CGMLDataNode:

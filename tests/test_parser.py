@@ -17,7 +17,7 @@ def blinker():
         return data
 
 
-def test_parse(blinker):
+def test_parse(blinker: str):
     """Test parse_cgml function."""
     parser = CGMLParser()
     elements = parser.parse_cgml(blinker)
@@ -46,4 +46,6 @@ def test_parse_build_cycle(path: str) -> None:
         elements: CGMLElements = parser.parse_cgml(data)
         builded: str = builder.build(elements)
         new_elements: CGMLElements = parser.parse_cgml(builded)
+        # with open('test.graphml', 'w') as f:
+        # f.write(builded)
         assert new_elements == elements
