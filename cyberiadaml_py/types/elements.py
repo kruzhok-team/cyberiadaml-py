@@ -3,12 +3,13 @@ from typing import (
     List,
     Dict,
     DefaultDict,
+    Literal,
     Optional,
     TypeAlias
 )
 
-from pydantic.dataclasses import dataclass
 from pydantic import Field
+from pydantic.dataclasses import dataclass
 
 try:
     from .cgml_scheme import CGMLDataNode, CGMLKeyNode
@@ -17,7 +18,27 @@ except ImportError:
     from cyberiadaml_py.types.cgml_scheme import CGMLDataNode, CGMLKeyNode
     from cyberiadaml_py.types.common import Point, Rectangle
 #  { node: ['dGeometry', ...], edge: ['dData', ...]}
-AwailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
+AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
+
+CGMLVertexType = Literal['choice', 'initial', 'final', 'terminate']
+CGMLNoteType = Literal['formal', 'informal']
+
+
+@dataclass
+class CGMLBaseVertex:
+    """
+    The type represents pseudo-nodes.
+
+    type: content from nested <data>-node with key 'dVertex'.
+    data: content from nested <data>-node with key 'dName'.
+    position: content from nested <data>-node with key 'dGeometry'.
+    parent: parent node id.
+    """
+
+    type: str
+    data: Optional[str] = None
+    position: Optional[Point | Rectangle] = None
+    parent: Optional[str] = None
 
 
 @dataclass
@@ -26,7 +47,7 @@ class CGMLState:
     Data class with information about state.
 
     State is <node>, that not connected with meta node,\
-        doesn't have data node with key 'dNote' or 'dInitial'
+        doesn't have data node with key 'dNote'
 
     Parameters:
     name: content of data node with key 'dName'.
@@ -40,9 +61,9 @@ class CGMLState:
 
     name: str
     actions: str
-    unknownDatanodes: List[CGMLDataNode]
+    unknown_datanodes: List[CGMLDataNode]
     parent: Optional[str] = None
-    bounds: Optional[Rectangle] = None
+    bounds: Optional[Rectangle | Point] = None
     color: Optional[str] = None
 
 
@@ -51,32 +72,38 @@ class CGMLComponent:
     """
     Data class with information about component.
 
-    Component is node, that connected with meta node (<node id=''>).
+    Component is formal note, that includes <data>-node with key 'dName'\
+        and content 'CGML_COMPONENT'.
     parameters: content of data node with key 'dData'.
     """
 
     id: str
-    parameters: str
+    type: str
+    parameters: Dict[str, str]
 
 
 @dataclass
-class CGMLInitialState:
+class CGMLInitialState(CGMLBaseVertex):
     """
     Data class with information about initial state (pseudo node).
 
-    Intiial state is <node>, that contains data node with key 'dInitial'.
-
-    Parameters:
-    id: state's id.
-    target: state's id, thats connetcted with initial state\
-        (<edge source="initial state id" target="target state's id">)
-    position: x, y properties of data node with 'dGeometry' key.
+    Intiial state is <node>, that contains data node with key 'dVertex'\
+        and content 'initial'.
     """
 
-    transitionId: str
-    id: str
-    target: str
-    position: Optional[Point] = None
+    ...
+
+
+@dataclass
+class CGMLChoice(CGMLBaseVertex):
+    """
+    Data class with information about choice node (pseudo node).
+
+    Choice is <node>, that contains data node with key 'dVertex'\
+        and content 'choice'.
+    """
+
+    ...
 
 
 @dataclass
@@ -98,9 +125,11 @@ class CGMLTransition:
     source: str
     target: str
     actions: str
-    unknownDatanodes: List[CGMLDataNode]
+    unknown_datanodes: List[CGMLDataNode]
     color: Optional[str] = None
-    position: Optional[Point] = None
+    position: List[Point] = Field(default_factory=list)
+    label_position: Optional[Point] = None
+    pivot: Optional[str] = None
 
 
 @dataclass
@@ -109,14 +138,59 @@ class CGMLNote:
     Dataclass with infromation about note.
 
     Note is <node> containing data node with key 'dNote'
+    type: content of <data key="dNote">
+    text: content of <data key="dData">
+    name: content of <data key="dName">
+    position: properties <data key="dGeometry">'s child\
+        <point> or <rect>
     unknownDatanodes: all datanodes, whose information\
         is not included in the type.
     """
 
-    position: Point
+    name: str
+    position: Point | Rectangle
     text: str
-    unknownDatanodes: List[CGMLDataNode]
-    id: str = Field(serialization_alias='@id')
+    type: str
+    unknown_datanodes: List[CGMLDataNode]
+    parent: str | None = None
+
+
+@dataclass
+class CGMLMeta:
+    """
+    The type represents meta-information from formal\
+        note with 'dName' CGML_META.
+
+    id: meta-node id.
+    values: information from meta node, exclude required parameters.
+    """
+
+    id: str
+    values: Dict[str, str]
+
+
+@dataclass
+class CGMLFinal(CGMLBaseVertex):
+    """
+    The type represents final-states.
+
+    Final state - <node>, that includes dVertex\
+        with content 'final'.
+    """
+
+    ...
+
+
+@dataclass
+class CGMLTerminate(CGMLBaseVertex):
+    """
+    The type represents terminate-states.
+
+    Final state - <node>, that includes dVertex\
+        with content 'terminate'.
+    """
+
+    ...
 
 
 @dataclass
@@ -127,26 +201,37 @@ class CGMLElements:
     Contains dict of CGMLStates, where the key is state's id.
     Also contains trainstions, components, awaialable keys, notes.
 
-    States doesn't contains components nodes and initial state.
-    Transitions doesn't contains edges from meta-node(<node id=''>)\
-        to components nodes.
+    States doesn't contains components nodes and pseudo-nodes.
 
     Parameters:
     meta: content of data node\
-        with key 'dData' inside <node id="">
+        with key 'dData' inside meta-node.
     format: content of data node with key 'gFormat'.
-    platform: content of data node with key 'dName'\
-        inside <node id="">
+    platform: content of meta-data
     keys: dict of KeyNodes, where the key is 'for' attribute.\
         Example: { "node": [KeyNode, ...], "edge": [...] }
     """
 
     states: Dict[str, CGMLState]
     transitions: Dict[str, CGMLTransition]
-    components: List[CGMLComponent]
+    components: Dict[str, CGMLComponent]
+    standard_version: str
     platform: str
-    meta: str
+    meta: CGMLMeta
     format: str
-    keys: AwailableKeys
+    keys: AvailableKeys
     notes: Dict[str, CGMLNote]
-    initial_state: Optional[CGMLInitialState] = None
+    initial_states: Dict[str, CGMLInitialState]
+    finals: Dict[str, CGMLFinal]
+    choices: Dict[str, CGMLChoice]
+    terminates: Dict[str, CGMLTerminate]
+    unknown_vertexes: Dict[str, CGMLBaseVertex]
+
+
+Vertex = (
+    CGMLFinal |
+    CGMLChoice |
+    CGMLInitialState |
+    CGMLTerminate |
+    CGMLBaseVertex
+)
