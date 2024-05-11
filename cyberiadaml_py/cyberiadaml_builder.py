@@ -79,7 +79,8 @@ class CGMLBuilder:
             elements.finals |
             elements.choices |
             elements.initial_states |
-            elements.terminates
+            elements.terminates |
+            elements.unknown_vertexes
         )
         vertexes_nodes: List[CGMLNode] = list(
             chain(initials, finals, terminates, choices))
@@ -236,7 +237,6 @@ class CGMLBuilder:
                 'standardVersion': standard_version
             }
         )
-        print(meta_parameters)
         data.append(self._get_note_datanode('formal'))
         data.append(self._name_to_data('CGML_META'))
         data.append(self._actions_to_data(meta_parameters))

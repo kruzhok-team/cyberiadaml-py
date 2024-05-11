@@ -75,6 +75,7 @@ class CGMLParser:
             ),
             keys=defaultdict(),
             notes={},
+            unknown_vertexes={}
         )
 
     def parse_cgml(self, graphml: str) -> CGMLElements:
@@ -113,11 +114,22 @@ class CGMLParser:
         finals: Dict[str, CGMLFinal] = {}
         choices: Dict[str, CGMLChoice] = {}
         initials: Dict[str, CGMLInitialState] = {}
+        unknown_vertexes: Dict[str, CGMLBaseVertex] = {}
         meta: CGMLMeta = CGMLMeta(
             id='',
             values={}
         )
         components: Dict[str, CGMLComponent] = {}
+        vertex_dicts: Dict[CGMLVertexType,
+                           tuple[Dict[str, CGMLInitialState], type] |
+                           tuple[Dict[str, CGMLFinal], type] |
+                           tuple[Dict[str, CGMLChoice], type] |
+                           tuple[Dict[str, CGMLTerminate], type]] = {
+            'initial': (initials, CGMLInitialState),
+            'choice': (choices, CGMLChoice),
+            'final': (finals, CGMLFinal),
+            'terminate': (terminates, CGMLTerminate)
+        }
         for graph in graphs:
             states = states | self._parse_graph_nodes(graph)
             transitions = transitions | self._parse_graph_edges(graph)
@@ -147,8 +159,9 @@ class CGMLParser:
                             )
                         )
                         try:
-                            component_id = component_parameters['id']
-                            component_type = component_parameters['type']
+                            component_id = component_parameters['id'].strip()
+                            component_type = (
+                                component_parameters['type'].strip())
                             del component_parameters['id']
                             del component_parameters['type']
                         except KeyError:
@@ -164,35 +177,21 @@ class CGMLParser:
             elif isinstance(state, CGMLBaseVertex):
                 vertex = state
                 del states[state_id]
-                match vertex.type:
-                    case 'initial':
-                        initials[state_id] = CGMLInitialState(
-                            type=vertex.type,
-                            data=vertex.data,
-                            position=vertex.position,
-                            parent=vertex.parent
-                        )
-                    case 'final':
-                        finals[state_id] = CGMLFinal(
-                            type=vertex.type,
-                            data=vertex.data,
-                            position=vertex.position,
-                            parent=vertex.parent
-                        )
-                    case 'choice':
-                        choices[state_id] = CGMLChoice(
-                            type=vertex.type,
-                            data=vertex.data,
-                            position=vertex.position,
-                            parent=vertex.parent
-                        )
-                    case 'terminate':
-                        terminates[state_id] = CGMLTerminate(
-                            type=vertex.type,
-                            data=vertex.data,
-                            position=vertex.position,
-                            parent=vertex.parent
-                        )
+                if self.__is_vertex_type(vertex.type):
+                    vertex_dict, vertex_type = vertex_dicts[vertex.type]
+                    vertex_dict[state_id] = vertex_type(
+                        type=vertex.type,
+                        data=vertex.data,
+                        position=vertex.position,
+                        parent=vertex.parent
+                    )
+                else:
+                    unknown_vertexes[state_id] = CGMLBaseVertex(
+                        vertex.type,
+                        vertex.data,
+                        vertex.position,
+                        vertex.parent
+                    )
             else:
                 raise CGMLParserException(
                     'Internal error: Unknown type of node')
@@ -227,8 +226,7 @@ class CGMLParser:
         parameters: Dict[str, str] = {}
         for parameter in splited_parameters:
             parameter_name, parameter_value = parameter.split('/')
-            parameters[parameter_name] = parameter_value
-        print(parameters)
+            parameters[parameter_name.strip()] = parameter_value.strip()
         return parameters
 
     def _get_data_content(self, data_node: CGMLDataNode) -> str:
@@ -287,13 +285,6 @@ class CGMLParser:
     def __is_vertex_type(self, value: str) -> TypeGuard[CGMLVertexType]:
         return value in get_args(CGMLVertexType)
 
-    def _get_vertex_type(self, note_name: str) -> CGMLVertexType:
-        if self.__is_vertex_type(note_name):
-            return note_name
-        raise CGMLParserException(
-            f'Unknown type of formal note! Expect \
-                {get_args(CGMLVertexType)}')
-
     def _process_state_data(self,
                             state: CGMLState
                             ) -> CGMLState | CGMLNote | CGMLBaseVertex:
@@ -307,7 +298,7 @@ class CGMLParser:
             parent=state.parent
         )
         note_type: Optional[CGMLNoteType] = None
-        vertex_type: Optional[CGMLVertexType] = None
+        vertex_type: Optional[str] = None
         is_note = False
         is_vertex = False
         for data_node in state.unknown_datanodes:
@@ -336,8 +327,7 @@ class CGMLParser:
                         )
                 case 'dVertex':
                     is_vertex = True
-                    vertex_type = self._get_vertex_type(
-                        self._get_data_content(data_node))
+                    vertex_type = self._get_data_content(data_node)
                 case 'dData':
                     new_state.actions = self._get_data_content(data_node)
                 case 'dNote':

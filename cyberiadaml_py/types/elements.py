@@ -35,7 +35,7 @@ class CGMLBaseVertex:
     parent: parent node id.
     """
 
-    type: CGMLVertexType
+    type: str
     data: Optional[str] = None
     position: Optional[Point | Rectangle] = None
     parent: Optional[str] = None
@@ -202,8 +202,6 @@ class CGMLElements:
     Also contains trainstions, components, awaialable keys, notes.
 
     States doesn't contains components nodes and pseudo-nodes.
-    Transitions doesn't contains edges from meta-node(<node id=''>)\
-        to components nodes.
 
     Parameters:
     meta: content of data node\
@@ -227,6 +225,13 @@ class CGMLElements:
     finals: Dict[str, CGMLFinal]
     choices: Dict[str, CGMLChoice]
     terminates: Dict[str, CGMLTerminate]
+    unknown_vertexes: Dict[str, CGMLBaseVertex]
 
 
-Vertex = CGMLFinal | CGMLChoice | CGMLInitialState | CGMLTerminate
+Vertex = (
+    CGMLFinal |
+    CGMLChoice |
+    CGMLInitialState |
+    CGMLTerminate |
+    CGMLBaseVertex
+)
