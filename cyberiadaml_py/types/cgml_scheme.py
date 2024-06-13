@@ -59,7 +59,7 @@ class CGMLGraph:
     """The type represents <graph> node."""
 
     id: str = Field(alias='@id')
-    data: List[CGMLDataNode] | CGMLDataNode
+    data: List[CGMLDataNode] | CGMLDataNode = Field(default_factory=list)
     edgedefault: Optional[str] = Field(alias='@edgedefault', default=None)
     node: Optional[List['CGMLNode'] | 'CGMLNode'] = None
     edge: Optional[List[CGMLEdge] | CGMLEdge] = None

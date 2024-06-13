@@ -79,7 +79,7 @@ def create_empty_state_machine() -> CGMLStateMachine:
     )
 
 
-def __is_empty_meta(meta: CGMLMeta) -> bool:
+def _is_empty_meta(meta: CGMLMeta) -> bool:
     return meta.values == {} and meta.id == ''
 
 
@@ -154,7 +154,7 @@ class CGMLParser:
                         continue
                     match note.name:
                         case 'CGML_META':
-                            if not __is_empty_meta(meta):
+                            if not _is_empty_meta(meta):
                                 raise CGMLParserException('Double meta nodes!')
                             meta.id = state_id
                             meta.values = self._parse_meta(note.text)

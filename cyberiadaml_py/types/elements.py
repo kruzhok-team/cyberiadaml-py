@@ -8,7 +8,7 @@ from typing import (
     TypeAlias
 )
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass
 
 try:
@@ -217,8 +217,7 @@ class CGMLStateMachine:
     name: Optional[str] = Field(default=None)
 
 
-@dataclass
-class CGMLElements:
+class CGMLElements(BaseModel):
     """
     Dataclass with elements of parsed scheme.
 
