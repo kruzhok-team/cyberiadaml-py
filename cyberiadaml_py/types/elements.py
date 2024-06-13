@@ -194,14 +194,33 @@ class CGMLTerminate(CGMLBaseVertex):
 
 
 @dataclass
-class CGMLElements:
+class CGMLStateMachine:
     """
-    Dataclass with elements of parsed scheme.
+    The type represents state machine <graph>.
 
     Contains dict of CGMLStates, where the key is state's id.
     Also contains trainstions, components, awaialable keys, notes.
 
     States doesn't contains components nodes and pseudo-nodes.
+    transitions doesn't contains component's transitions.
+    """
+
+    states: Dict[str, CGMLState]
+    transitions: Dict[str, CGMLTransition]
+    components: Dict[str, CGMLComponent]
+    notes: Dict[str, CGMLNote]
+    initial_states: Dict[str, CGMLInitialState]
+    finals: Dict[str, CGMLFinal]
+    choices: Dict[str, CGMLChoice]
+    terminates: Dict[str, CGMLTerminate]
+    unknown_vertexes: Dict[str, CGMLBaseVertex]
+    name: Optional[str] = Field(default=None)
+
+
+@dataclass
+class CGMLElements:
+    """
+    Dataclass with elements of parsed scheme.
 
     Parameters:
     meta: content of data node\
@@ -212,20 +231,12 @@ class CGMLElements:
         Example: { "node": [KeyNode, ...], "edge": [...] }
     """
 
-    states: Dict[str, CGMLState]
-    transitions: Dict[str, CGMLTransition]
-    components: Dict[str, CGMLComponent]
+    state_machines: Dict[str, CGMLStateMachine]
     standard_version: str
     platform: str
     meta: CGMLMeta
     format: str
     keys: AvailableKeys
-    notes: Dict[str, CGMLNote]
-    initial_states: Dict[str, CGMLInitialState]
-    finals: Dict[str, CGMLFinal]
-    choices: Dict[str, CGMLChoice]
-    terminates: Dict[str, CGMLTerminate]
-    unknown_vertexes: Dict[str, CGMLBaseVertex]
 
 
 Vertex = (

@@ -28,6 +28,7 @@ from cyberiadaml_py.types.elements import (
     CGMLFinal,
     CGMLMeta,
     CGMLNoteType,
+    CGMLStateMachine,
     CGMLTerminate,
     CGMLVertexType,
     CGMLComponent,
@@ -49,34 +50,44 @@ class CGMLParserException(Exception):
     ...
 
 
+def create_empty_elements() -> CGMLElements:
+    """Create CGMLElements with empty fields."""
+    return CGMLElements(
+        state_machines={},
+        standard_version='',
+        platform='',
+        format='',
+        meta=CGMLMeta(
+            id='',
+            values={},
+        ),
+        keys=defaultdict())
+
+
+def create_empty_state_machine() -> CGMLStateMachine:
+    """Create CGMLStateMachine with empty fields."""
+    return CGMLStateMachine(
+        states={},
+        transitions={},
+        finals={},
+        choices={},
+        terminates={},
+        initial_states={},
+        components={},
+        notes={},
+        unknown_vertexes={}
+    )
+
+
+def __is_empty_meta(meta: CGMLMeta) -> bool:
+    return meta.values == {} and meta.id == ''
+
+
 class CGMLParser:
     """Class that contains functions for parsing CyberiadaML."""
 
     def __init__(self) -> None:
-        self.elements: CGMLElements = CGMLParser.createEmptyElements()
-
-    @staticmethod
-    def createEmptyElements() -> CGMLElements:
-        """Create CGMLElements with empty fields."""
-        return CGMLElements(
-            states={},
-            transitions={},
-            finals={},
-            choices={},
-            terminates={},
-            initial_states={},
-            standard_version='',
-            components={},
-            platform='',
-            format='',
-            meta=CGMLMeta(
-                id='',
-                values={},
-            ),
-            keys=defaultdict(),
-            notes={},
-            unknown_vertexes={}
-        )
+        self.elements: CGMLElements = create_empty_elements()
 
     def parse_cgml(self, graphml: str) -> CGMLElements:
         """
@@ -99,7 +110,7 @@ class CGMLParser:
             ValidationError(...): pydatinc's validation error, occurs when\
                 the scheme doesn't match the format.
         """
-        self.elements = CGMLParser.createEmptyElements()
+        self.elements = create_empty_elements()
         cgml = CGML(**parse(graphml))
         format: str = self._get_format(cgml)
         keys: DefaultDict[str, List[CGMLKeyNode]
@@ -107,119 +118,136 @@ class CGMLParser:
         platform = ''
         standard_version = ''
         graphs: List[CGMLGraph] = to_list(cgml.graphml.graph)
-        states: Dict[str, CGMLState] = {}
-        transitions: Dict[str, CGMLTransition] = {}
-        notes: Dict[str, CGMLNote] = {}
-        terminates: Dict[str, CGMLTerminate] = {}
-        finals: Dict[str, CGMLFinal] = {}
-        choices: Dict[str, CGMLChoice] = {}
-        initials: Dict[str, CGMLInitialState] = {}
-        unknown_vertexes: Dict[str, CGMLBaseVertex] = {}
         meta: CGMLMeta = CGMLMeta(
             id='',
             values={}
         )
-        components: Dict[str, CGMLComponent] = {}
-        vertex_dicts: Dict[CGMLVertexType,
-                           tuple[Dict[str, CGMLInitialState], type] |
-                           tuple[Dict[str, CGMLFinal], type] |
-                           tuple[Dict[str, CGMLChoice], type] |
-                           tuple[Dict[str, CGMLTerminate], type]] = {
-            'initial': (initials, CGMLInitialState),
-            'choice': (choices, CGMLChoice),
-            'final': (finals, CGMLFinal),
-            'terminate': (terminates, CGMLTerminate)
-        }
         for graph in graphs:
-            states = states | self._parse_graph_nodes(graph)
-            transitions = transitions | self._parse_graph_edges(graph)
-        for state_id in list(states.keys()):
-            state = self._process_state_data(states[state_id])
-            if isinstance(state, CGMLNote):
-                note = state
-                del states[state_id]
-                if note.type == 'informal':
-                    notes[state_id] = state
-                    continue
-
-                match note.name:
-                    case 'CGML_META':
-                        meta.id = state_id
-                        meta.values = self._parse_meta(note.text)
-                        try:
-                            platform = meta.values['platform']
-                            standard_version = meta.values['standardVersion']
-                        except KeyError:
-                            raise CGMLParserException(
-                                'No platform or standardVersion.')
-                    case 'CGML_COMPONENT':
-                        component_parameters: Dict[str, str] = (
-                            self._parse_meta(
-                                note.text
+            states: Dict[str, CGMLState] = {}
+            transitions: Dict[str, CGMLTransition] = {}
+            notes: Dict[str, CGMLNote] = {}
+            terminates: Dict[str, CGMLTerminate] = {}
+            finals: Dict[str, CGMLFinal] = {}
+            choices: Dict[str, CGMLChoice] = {}
+            initials: Dict[str, CGMLInitialState] = {}
+            unknown_vertexes: Dict[str, CGMLBaseVertex] = {}
+            components: Dict[str, CGMLComponent] = {}
+            vertex_dicts: Dict[CGMLVertexType,
+                               tuple[Dict[str, CGMLInitialState], type] |
+                               tuple[Dict[str, CGMLFinal], type] |
+                               tuple[Dict[str, CGMLChoice], type] |
+                               tuple[Dict[str, CGMLTerminate], type]] = {
+                'initial': (initials, CGMLInitialState),
+                'choice': (choices, CGMLChoice),
+                'final': (finals, CGMLFinal),
+                'terminate': (terminates, CGMLTerminate)
+            }
+            states = self._parse_graph_nodes(graph)
+            transitions = self._parse_graph_edges(graph)
+            for state_id in list(states.keys()):
+                state = self._process_state_data(states[state_id])
+                if isinstance(state, CGMLNote):
+                    note = state
+                    del states[state_id]
+                    if note.type == 'informal':
+                        notes[state_id] = state
+                        continue
+                    match note.name:
+                        case 'CGML_META':
+                            if not __is_empty_meta(meta):
+                                raise CGMLParserException('Double meta nodes!')
+                            meta.id = state_id
+                            meta.values = self._parse_meta(note.text)
+                            try:
+                                platform = meta.values['platform']
+                                standard_version = (
+                                    meta.values['standardVersion'])
+                            except KeyError:
+                                raise CGMLParserException(
+                                    'No platform or standardVersion.')
+                        case 'CGML_COMPONENT':
+                            component_parameters: Dict[str, str] = (
+                                self._parse_meta(
+                                    note.text
+                                )
                             )
+                            try:
+                                component_id = (
+                                    component_parameters['id'].strip(
+                                    )
+                                )
+                                component_type = (
+                                    component_parameters['type'].strip())
+                                del component_parameters['id']
+                                del component_parameters['type']
+                            except KeyError:
+                                raise CGMLParserException(
+                                    "Component doesn't have type or id.")
+                            components[state_id] = CGMLComponent(
+                                id=component_id,
+                                type=component_type,
+                                parameters=component_parameters
+                            )
+                elif isinstance(state, CGMLState):
+                    states[state_id] = state
+                elif isinstance(state, CGMLBaseVertex):
+                    vertex = state
+                    del states[state_id]
+                    if self.__is_vertex_type(vertex.type):
+                        vertex_dict, vertex_type = vertex_dicts[vertex.type]
+                        vertex_dict[state_id] = vertex_type(
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
                         )
-                        try:
-                            component_id = component_parameters['id'].strip()
-                            component_type = (
-                                component_parameters['type'].strip())
-                            del component_parameters['id']
-                            del component_parameters['type']
-                        except KeyError:
-                            raise CGMLParserException(
-                                "Component doesn't have type or id.")
-                        components[state_id] = CGMLComponent(
-                            id=component_id,
-                            type=component_type,
-                            parameters=component_parameters
+                    else:
+                        unknown_vertexes[state_id] = CGMLBaseVertex(
+                            vertex.type,
+                            vertex.data,
+                            vertex.position,
+                            vertex.parent
                         )
-            elif isinstance(state, CGMLState):
-                states[state_id] = state
-            elif isinstance(state, CGMLBaseVertex):
-                vertex = state
-                del states[state_id]
-                if self.__is_vertex_type(vertex.type):
-                    vertex_dict, vertex_type = vertex_dicts[vertex.type]
-                    vertex_dict[state_id] = vertex_type(
-                        type=vertex.type,
-                        data=vertex.data,
-                        position=vertex.position,
-                        parent=vertex.parent
-                    )
                 else:
-                    unknown_vertexes[state_id] = CGMLBaseVertex(
-                        vertex.type,
-                        vertex.data,
-                        vertex.position,
-                        vertex.parent
-                    )
-            else:
-                raise CGMLParserException(
-                    'Internal error: Unknown type of node')
+                    raise CGMLParserException(
+                        'Internal error: Unknown type of node')
 
-        component_ids: List[str] = []
-        for transition in list(transitions.values()):
-            processedTransition: CGMLTransition = self._process_edge_data(
-                transition)
-            if transition.source == meta.id:
-                component_ids.append(transition.id)
-            else:
-                transitions[transition.id] = processedTransition
+            component_ids: List[str] = []
+            for transition in list(transitions.values()):
+                processedTransition: CGMLTransition = self._process_edge_data(
+                    transition)
+                if transition.source == meta.id:
+                    component_ids.append(transition.id)
+                else:
+                    transitions[transition.id] = processedTransition
 
-        for component_id in component_ids:
-            del transitions[component_id]
+            for component_id in component_ids:
+                del transitions[component_id]
+            self.elements.state_machines[graph.id] = CGMLStateMachine(
+                states=states,
+                transitions=transitions,
+                components=components,
+                initial_states=initials,
+                finals=finals,
+                unknown_vertexes=unknown_vertexes,
+                terminates=terminates,
+                notes=notes,
+                choices=choices,
+                name=self._get_state_machine_name(graph)
+            )
         self.elements.meta = meta
-        self.elements.states = states
-        self.elements.notes = notes
-        self.elements.choices = choices
-        self.elements.finals = finals
-        self.elements.initial_states = initials
         self.elements.keys = keys
-        self.elements.transitions = transitions
-        self.elements.components = components
         self.elements.format = format
         self.elements.platform = platform
         self.elements.standard_version = standard_version
         return self.elements
+
+    def _get_state_machine_name(self, graph: CGMLGraph) -> str | None:
+        graph_datas = to_list(graph.data)
+        for graph_data in graph_datas:
+            if graph_data.key == 'dStateMachine':
+                return graph_data.content
+        return None
 
     def _parse_meta(self, meta: str) -> Dict[str, str]:
         splited_parameters: List[str] = meta.split('\n\n')
