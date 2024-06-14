@@ -28,14 +28,14 @@ def test_parse(blinker: str):
             'demos/CyberiadaFormat-Autoborder.graphml',
             id='Bearloga'
         ),
-        # pytest.param(
-        #     'demos/two-blinkers.graphml',
-        #     id='Two blinkers'
-        # ),
-        # pytest.param(
-        #     'demos/CyberiadaFormat-Blinker.graphml',
-        #     id='ArduinoUno'
-        # )
+        pytest.param(
+            'demos/two-blinkers.graphml',
+            id='Two blinkers'
+        ),
+        pytest.param(
+            'demos/CyberiadaFormat-Blinker.graphml',
+            id='ArduinoUno'
+        )
     ]
 )
 def test_parse_build_cycle(path: str) -> None:
