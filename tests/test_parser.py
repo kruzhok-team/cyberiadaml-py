@@ -4,9 +4,7 @@ from pprint import pprint
 import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
-from cyberiadaml_py.types.elements import (
-    CGMLElements
-)
+from cyberiadaml_py.types.elements import CGMLElements
 
 
 @pytest.fixture
@@ -31,6 +29,10 @@ def test_parse(blinker: str):
             id='Bearloga'
         ),
         pytest.param(
+            'demos/two-blinkers.graphml',
+            id='Two blinkers'
+        ),
+        pytest.param(
             'demos/CyberiadaFormat-Blinker.graphml',
             id='ArduinoUno'
         )
@@ -45,7 +47,12 @@ def test_parse_build_cycle(path: str) -> None:
         data: str = demo.read()
         elements: CGMLElements = parser.parse_cgml(data)
         builded: str = builder.build(elements)
+        # На случай, если тест не проходится
+        # with open('elements.json', 'w') as f:
+        #     f.write(elements.model_dump_json(indent=4))
+        # with open('test.graphml', 'w') as f:
+        #     f.write(builded)
         new_elements: CGMLElements = parser.parse_cgml(builded)
-        with open('test.graphml', 'w') as f:
-            f.write(builded)
+        # with open('new_elements.json', 'w') as f:
+        #     f.write(new_elements.model_dump_json(indent=4))
         assert new_elements == elements

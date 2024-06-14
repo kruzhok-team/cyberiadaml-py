@@ -21,6 +21,7 @@ from cyberiadaml_py.types.elements import (
     CGMLInitialState,
     CGMLMeta,
     CGMLNoteType,
+    CGMLStateMachine,
     CGMLVertexType,
     AvailableKeys,
     CGMLComponent,
@@ -40,70 +41,95 @@ class CGMLBuilderException(Exception):
     ...
 
 
+def create_empty_scheme() -> CGML:
+    """Create empty CyberiadaML scheme."""
+    return CGML(graphml=CGMLGraphml(
+        [],
+        'http://graphml.graphdrawing.org/xmlns',
+    ))
+
+
 class CGMLBuilder:
     """Contains functions to build CGML scheme."""
 
     def __init__(self) -> None:
-        self.scheme: CGML = CGMLBuilder.create_empty_scheme()
-
-    @staticmethod
-    def create_empty_scheme() -> CGML:
-        """Create empty CyberiadaML scheme."""
-        return CGML(graphml=CGMLGraphml(
-            [],
-            'http://graphml.graphdrawing.org/xmlns',
-        ))
+        self.scheme: CGML = create_empty_scheme()
 
     def _get_state_machine_datanode(self) -> CGMLDataNode:
         return CGMLDataNode('dStateMachine')
 
+    def _get_graph_data_nodes(self,
+                              state_machine: CGMLStateMachine
+                              ) -> List[CGMLDataNode]:
+        data_nodes: List[CGMLDataNode] = [
+            self._get_state_machine_datanode()
+        ]
+        if state_machine.name is not None:
+            data_nodes.append(CGMLDataNode('dName', state_machine.name))
+        return data_nodes
+
+    def _get_graphs(self,
+                    state_machines: Dict[str, CGMLStateMachine],
+                    ) -> List[CGMLGraph]:
+        raw_graphs: List[CGMLGraph] = []
+        for sm_id in state_machines:
+            sm = state_machines[sm_id]
+            cgml_states: Dict[str, CGMLNode] = self._get_state_nodes(
+                sm.states)
+            initials: List[CGMLNode] = self._get_vertex_nodes(
+                sm.initial_states, 'initial')
+            finals: List[CGMLNode] = self._get_vertex_nodes(
+                sm.finals, 'final')
+            terminates: List[CGMLNode] = self._get_vertex_nodes(
+                sm.terminates, 'terminate')
+            choices: List[CGMLNode] = self._get_vertex_nodes(
+                sm.choices, 'choice'
+            )
+            vertexes: Dict[str, Vertex] = (
+                sm.finals |
+                sm.choices |
+                sm.initial_states |
+                sm.terminates |
+                sm.unknown_vertexes
+            )
+            vertexes_nodes: List[CGMLNode] = list(
+                chain(initials, finals, terminates, choices))
+            states_with_vertexes, independent_vertexes = (
+                self._add_vertexes_to_states(
+                    vertexes_nodes, vertexes, cgml_states)
+            )
+            nodes: List[CGMLNode] = [
+                *independent_vertexes,
+                *states_with_vertexes.values(),
+                *self._get_components_nodes(sm.components),
+                *self._get_note_nodes(sm.notes)
+            ]
+            edges: List[CGMLEdge] = self._get_edges(sm.transitions)
+            raw_graphs.append(
+                CGMLGraph(
+                    sm_id,
+                    self._get_graph_data_nodes(sm),
+                    'directed',
+                    node=nodes,
+                    edge=edges)
+            )
+
+        return raw_graphs
+
     def build(self, elements: CGMLElements) -> str:
         """Build CGML scheme from elements."""
-        self.scheme.graphml.graph = CGMLGraph(
-            'directed',
-            'G',
-            data=self._get_state_machine_datanode()
-        )
-        cgml_states: Dict[str, CGMLNode] = self._get_state_nodes(
-            elements.states)
-        initials: List[CGMLNode] = self._get_vertex_nodes(
-            elements.initial_states, 'initial')
-        finals: List[CGMLNode] = self._get_vertex_nodes(
-            elements.finals, 'final')
-        terminates: List[CGMLNode] = self._get_vertex_nodes(
-            elements.terminates, 'terminate')
-        choices: List[CGMLNode] = self._get_vertex_nodes(
-            elements.choices, 'choice'
-        )
-        vertexes: Dict[str, Vertex] = (
-            elements.finals |
-            elements.choices |
-            elements.initial_states |
-            elements.terminates |
-            elements.unknown_vertexes
-        )
-        vertexes_nodes: List[CGMLNode] = list(
-            chain(initials, finals, terminates, choices))
-        states_with_vertexes, independent_vertexes = (
-            self._add_vertexes_to_states(
-                vertexes_nodes, vertexes, cgml_states)
-        )
-        nodes: List[CGMLNode] = [
-            *independent_vertexes,
-            *states_with_vertexes.values(),
+        self.scheme = create_empty_scheme()
+        graphs = self._get_graphs(elements.state_machines)
+        if len(graphs) == 0:
+            raise CGMLBuilderException('No state machines to build!')
+        graphs[0].node = [
             self._get_meta_node(
-                elements.meta,
-                elements.platform,
-                elements.standard_version
-            ),
-            *self._get_components_nodes(elements.components),
-            *self._get_note_nodes(elements.notes)
+                elements.meta, elements.platform, elements.standard_version),
+            *to_list(graphs[0].node)
         ]
-        edges: List[CGMLEdge] = self._get_edges(elements.transitions)
-        self.scheme.graphml.data = self._get_format_node(elements.format)
+        self.scheme.graphml.graph = graphs
         self.scheme.graphml.key = self._get_keys(elements.keys)
-        self.scheme.graphml.graph.node = nodes
-        self.scheme.graphml.graph.edge = edges
+        self.scheme.graphml.data = self._get_format_node(elements.format)
         scheme: CGML = RootModel[CGML](self.scheme).model_dump(
             by_alias=True, exclude_defaults=True)
         # У model_dump неправильный возвращаемый тип (CGML),
@@ -143,8 +169,8 @@ class CGMLBuilder:
                 continue
             parent_node: CGMLNode = new_states[vertex.parent]
             if parent_node.graph is None:
-                parent_node.graph = CGMLGraph(
-                    f'g{parent_node.id}', node=[node])
+                parent_node.graph = CGMLGraph(f'g{parent_node.id}',
+                                              node=[node])
                 continue
             if isinstance(parent_node.graph, CGMLGraph):
                 graph_nodes = to_list(parent_node.graph.node)
@@ -217,7 +243,7 @@ class CGMLBuilder:
     def _get_actions_string(self, values: Dict[str, str]) -> str:
         parameters = ''
         for name, value in values.items():
-            parameters += f'{name}/{value}\n\n'
+            parameters += f'{name}/ {value}\n\n'
         return parameters
 
     def _get_note_datanode(self, note_type: CGMLNoteType) -> CGMLDataNode:
@@ -299,6 +325,7 @@ class CGMLBuilder:
                     nodes, parentState, state.parent)
                 if parent.graph is None:
                     parent.graph = CGMLGraph(
+                        f'{parent.id}::{stateId}',
                         node=[node]
                     )
                 elif isinstance(parent.graph, CGMLGraph):
