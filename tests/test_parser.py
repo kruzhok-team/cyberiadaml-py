@@ -47,11 +47,12 @@ def test_parse_build_cycle(path: str) -> None:
         data: str = demo.read()
         elements: CGMLElements = parser.parse_cgml(data)
         builded: str = builder.build(elements)
-        with open('elements.json', 'w') as f:
-            f.write(elements.model_dump_json(indent=4))
-        with open('test.graphml', 'w') as f:
-            f.write(builded)
+        # На случай, если тест не проходится
+        # with open('elements.json', 'w') as f:
+        #     f.write(elements.model_dump_json(indent=4))
+        # with open('test.graphml', 'w') as f:
+        #     f.write(builded)
         new_elements: CGMLElements = parser.parse_cgml(builded)
-        with open('new_elements.json', 'w') as f:
-            f.write(new_elements.model_dump_json(indent=4))
+        # with open('new_elements.json', 'w') as f:
+        #     f.write(new_elements.model_dump_json(indent=4))
         assert new_elements == elements

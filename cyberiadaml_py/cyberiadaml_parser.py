@@ -100,6 +100,10 @@ class CGMLParser:
             CGMLElements: notes, states, transitions,\
                 initial state and components
         Raises:
+            CGMLParserExcpetion('First level graph doesnt contains\
+                <data> with dStateMachine key!'): <graph>, that parent\
+                is <graphml>, doesn't contains <data key="dStateMachine">\
+                    on first level.
             CGMLParserException('Data node with key "gFormat" is empty'):\
                 content of <data key='gFormat'> is None
             CGMLParserException('Data node with key "gFormat" is missing'):\
@@ -244,10 +248,18 @@ class CGMLParser:
 
     def _get_state_machine_name(self, graph: CGMLGraph) -> str | None:
         graph_datas = to_list(graph.data)
+        name: str | None = None
+        is_state_machine = False
         for graph_data in graph_datas:
+            if graph_data.key == 'dName':
+                name = graph_data.content
             if graph_data.key == 'dStateMachine':
-                return graph_data.content
-        return None
+                is_state_machine = True
+        if not is_state_machine:
+            raise CGMLParserException(
+                'First level graph doesnt contains'
+                ' <data> with dStateMachine key!')
+        return name
 
     def _parse_meta(self, meta: str) -> Dict[str, str]:
         splited_parameters: List[str] = meta.split('\n\n')

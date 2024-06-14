@@ -55,8 +55,18 @@ class CGMLBuilder:
     def __init__(self) -> None:
         self.scheme: CGML = create_empty_scheme()
 
-    def _get_state_machine_datanode(self, sm_name: str | None) -> CGMLDataNode:
-        return CGMLDataNode('dStateMachine', sm_name)
+    def _get_state_machine_datanode(self) -> CGMLDataNode:
+        return CGMLDataNode('dStateMachine')
+
+    def _get_graph_data_nodes(self,
+                              state_machine: CGMLStateMachine
+                              ) -> List[CGMLDataNode]:
+        data_nodes: List[CGMLDataNode] = [
+            self._get_state_machine_datanode()
+        ]
+        if state_machine.name is not None:
+            data_nodes.append(CGMLDataNode('dName', state_machine.name))
+        return data_nodes
 
     def _get_graphs(self,
                     state_machines: Dict[str, CGMLStateMachine],
@@ -98,8 +108,7 @@ class CGMLBuilder:
             raw_graphs.append(
                 CGMLGraph(
                     sm_id,
-                    self._get_state_machine_datanode(
-                        sm.name),
+                    self._get_graph_data_nodes(sm),
                     'directed',
                     node=nodes,
                     edge=edges)
