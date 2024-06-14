@@ -100,9 +100,9 @@ class CGMLParser:
             CGMLElements: notes, states, transitions,\
                 initial state and components
         Raises:
-            CGMLParserExcpetion('First level graph doesnt contains\
+            CGMLParserExcpetion('First level graph doesn't contain\
                 <data> with dStateMachine key!'): <graph>, that parent\
-                is <graphml>, doesn't contains <data key="dStateMachine">\
+                is <graphml>, doesn't contain <data key="dStateMachine">\
                     on first level.
             CGMLParserException('Data node with key "gFormat" is empty'):\
                 content of <data key='gFormat'> is None
@@ -257,7 +257,7 @@ class CGMLParser:
                 is_state_machine = True
         if not is_state_machine:
             raise CGMLParserException(
-                'First level graph doesnt contains'
+                "First level graph doesn't contain"
                 ' <data> with dStateMachine key!')
         return name
 
