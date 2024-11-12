@@ -110,7 +110,8 @@ class CGMLBuilder:
                     sm_id,
                     self._get_graph_data_nodes(sm),
                     'directed',
-                    node=nodes,
+                    node=[self._get_meta_node(
+                        sm.meta, sm.platform, sm.standard_version), *nodes],
                     edge=edges)
             )
 
@@ -122,11 +123,6 @@ class CGMLBuilder:
         graphs = self._get_graphs(elements.state_machines)
         if len(graphs) == 0:
             raise CGMLBuilderException('No state machines to build!')
-        graphs[0].node = [
-            self._get_meta_node(
-                elements.meta, elements.platform, elements.standard_version),
-            *to_list(graphs[0].node)
-        ]
         self.scheme.graphml.graph = graphs
         self.scheme.graphml.key = self._get_keys(elements.keys)
         self.scheme.graphml.data = self._get_format_node(elements.format)

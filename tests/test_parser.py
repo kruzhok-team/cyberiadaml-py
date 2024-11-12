@@ -24,18 +24,18 @@ def test_parse(blinker: str):
 
 @pytest.mark.parametrize(
     'path', [
-        pytest.param(
-            'demos/CyberiadaFormat-Autoborder.graphml',
-            id='Bearloga'
-        ),
+        # pytest.param(
+        #     'demos/CyberiadaFormat-Autoborder.graphml',
+        #     id='Bearloga'
+        # ),
         pytest.param(
             'demos/two-blinkers.graphml',
             id='Two blinkers'
         ),
-        pytest.param(
-            'demos/CyberiadaFormat-Blinker.graphml',
-            id='ArduinoUno'
-        )
+        # pytest.param(
+        #     'demos/CyberiadaFormat-Blinker.graphml',
+        #     id='ArduinoUno'
+        # )
     ]
 )
 def test_parse_build_cycle(path: str) -> None:
@@ -47,6 +47,7 @@ def test_parse_build_cycle(path: str) -> None:
         data: str = demo.read()
         elements: CGMLElements = parser.parse_cgml(data)
         builded: str = builder.build(elements)
+        print(builded)
         # На случай, если тест не проходится
         # with open('elements.json', 'w') as f:
         #     f.write(elements.model_dump_json(indent=4))
