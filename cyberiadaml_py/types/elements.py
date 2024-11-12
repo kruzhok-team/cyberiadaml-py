@@ -205,6 +205,9 @@ class CGMLStateMachine:
     transitions doesn't contains component's transitions.
     """
 
+    platform: str
+    meta: CGMLMeta
+    standard_version: str
     states: Dict[str, CGMLState]
     transitions: Dict[str, CGMLTransition]
     components: Dict[str, CGMLComponent]
@@ -231,9 +234,6 @@ class CGMLElements(BaseModel):
     """
 
     state_machines: Dict[str, CGMLStateMachine]
-    standard_version: str
-    platform: str
-    meta: CGMLMeta
     format: str
     keys: AvailableKeys
 

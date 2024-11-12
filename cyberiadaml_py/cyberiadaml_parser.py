@@ -54,19 +54,19 @@ def create_empty_elements() -> CGMLElements:
     """Create CGMLElements with empty fields."""
     return CGMLElements(
         state_machines={},
-        standard_version='',
-        platform='',
         format='',
-        meta=CGMLMeta(
-            id='',
-            values={},
-        ),
         keys=defaultdict())
 
 
 def create_empty_state_machine() -> CGMLStateMachine:
     """Create CGMLStateMachine with empty fields."""
     return CGMLStateMachine(
+        standard_version='',
+        platform='',
+        meta=CGMLMeta(
+            id='',
+            values={},
+        ),
         states={},
         transitions={},
         finals={},
@@ -116,17 +116,17 @@ class CGMLParser:
         """
         self.elements = create_empty_elements()
         cgml = CGML(**parse(graphml))
-        format: str = self._get_format(cgml)
-        keys: DefaultDict[str, List[CGMLKeyNode]
-                          ] = self._get_available_keys(cgml)
-        platform = ''
-        standard_version = ''
         graphs: List[CGMLGraph] = to_list(cgml.graphml.graph)
-        meta: CGMLMeta = CGMLMeta(
-            id='',
-            values={}
-        )
+        format: str = self._get_format(cgml)
         for graph in graphs:
+            keys: DefaultDict[str, List[CGMLKeyNode]
+                              ] = self._get_available_keys(cgml)
+            platform = ''
+            standard_version = ''
+            meta: CGMLMeta = CGMLMeta(
+                id='',
+                values={}
+            )
             states: Dict[str, CGMLState] = {}
             transitions: Dict[str, CGMLTransition] = {}
             notes: Dict[str, CGMLNote] = {}
@@ -207,10 +207,10 @@ class CGMLParser:
                         )
                     else:
                         unknown_vertexes[state_id] = CGMLBaseVertex(
-                            vertex.type,
-                            vertex.data,
-                            vertex.position,
-                            vertex.parent
+                            type=vertex.type,
+                            data=vertex.data,
+                            position=vertex.position,
+                            parent=vertex.parent
                         )
                 else:
                     raise CGMLParserException(
@@ -237,13 +237,13 @@ class CGMLParser:
                 terminates=terminates,
                 notes=notes,
                 choices=choices,
-                name=self._get_state_machine_name(graph)
+                name=self._get_state_machine_name(graph),
+                meta=meta,
+                platform=platform,
+                standard_version=standard_version,
             )
-        self.elements.meta = meta
         self.elements.keys = keys
         self.elements.format = format
-        self.elements.platform = platform
-        self.elements.standard_version = standard_version
         return self.elements
 
     def _get_state_machine_name(self, graph: CGMLGraph) -> str | None:

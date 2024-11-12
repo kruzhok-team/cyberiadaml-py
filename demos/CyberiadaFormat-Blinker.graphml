@@ -1,28 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns">
-
-<key id="gFormat" for="graphml" attr.name="format"
-    attr.type="string"/>
-<key id="dName" for="node" attr.name="name" attr.type="string"/>
-<key id="dVertex" for="node" attr.name="vertex" attr.type="string"/>
-<key id="dStateMachine" for="graph" attr.name="stateMachine" attr.type="string"/>
-<key id="dGeometry" for="node" attr.name="geometry"/>
-<key id="dLabelGeometry" for="edge" attr.name="labelGeometry"/>
-<key id="dPivot" for="edge" attr.name="pivot" attr.type="string"/>
-<key id="dNote" for="node" attr.name="note" attr.type="string"/>
-<key id="dData" for="node" attr.name="data" attr.type="string"/>
-<key id="dData" for="edge" attr.name="data" attr.type="string"/>
-<key id="dColor" for="edge" attr.name="color" attr.type="string"/>
-
-<data key="gFormat">Cyberiada-GraphML-1.0</data>
-
-<graph id="G" edgedefault="directed">
-    <data key="dStateMachine"/>
-    <data key="dName"> Моя любимая машина состояний! </data>
+  <data key="gFormat">Cyberiada-GraphML-1.0</data>
+  <key attr.name="name" attr.type="string" for="node" id="dName"></key>
+  <key attr.name="data" attr.type="string" for="node" id="dData"></key>
+  <key attr.name="data" attr.type="string" for="edge" id="dData"></key>
+  <key attr.name="initial" attr.type="string" for="node" id="dInitial"></key>
+  <key for="edge" id="dGeometry"></key>
+  <key for="node" id="dGeometry"></key>
+  <key for="edge" id="dColor"></key>
+  <key for="node" id="dNote"></key>
+  <key for="node" id="dColor"></key>
+  <graph id="g">
+    <data key="dStateMachine"></data>
     <node id="coreMeta">
-        <data key="dNote">formal</data>
-        <data key="dName">CGML_META</data>
-        <data key="dData">platform/ ArduinoUno
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_META</data>
+      <data key="dData">platform/ ArduinoUno
 
 standardVersion/ 1.0
 
@@ -32,12 +25,44 @@ author/ Lapki IDE TEAM
 
 description/ Включение и выключение лампочки по таймеру
 
-        </data>
+platformVersion/ 1.0
+
+</data>
+    </node>
+    <node id="diod1">
+      <data key="dName">Включен</data>
+      <data key="dData">entry/
+LED1.on();
+timer1.start(1000);
+
+</data>
+      <data key="dGeometry">
+        <rect x="82" y="57" width="450" height="95"></rect>
+      </data>
+      <data key="dColor">#FFFFFF</data>
+    </node>
+    <node id="diod2">
+      <data key="dName">Выключен</data>
+      <data key="dData">entry/
+LED1.off();
+timer1.start(1000);
+
+</data>
+      <data key="dGeometry">
+        <rect x="81" y="334" width="450" height="95"></rect>
+      </data>
+      <data key="dColor">#FFFFFF</data>
+    </node>
+    <node id="init">
+      <data key="dVertex">initial</data>
+      <data key="dGeometry">
+        <rect x="20" y="30" width="-1" height="-1"></rect>
+      </data>
     </node>
     <node id="cLED1">
-        <data key="dNote">formal</data>
-        <data key="dName"> CGML_COMPONENT </data>
-        <data key="dData">id/ LED1 
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT</data>
+      <data key="dData">id/ LED1
 
 type/ LED
 
@@ -47,13 +72,12 @@ description/ Встроенный в плату светодиод, чтобы �
 
 pin/ 12
 
-        </data>
+</data>
     </node>
-
     <node id="ctimer1">
-        <data key="dNote">formal</data>
-        <data key="dName"> CGML_COMPONENT </data>
-        <data key="dData">id/ timer1 
+      <data key="dNote">formal</data>
+      <data key="dName">CGML_COMPONENT</data>
+      <data key="dData">id/ timer1
 
 type/ Timer
 
@@ -61,66 +85,33 @@ name/ Таймер
 
 description/ Программный таймер.
 
-        </data>
+</data>
     </node>
-
-    <node id="init">
-        <data key="dVertex">initial</data>
-    </node>
-
-   <node id="diod1">
-        <data key="dName">Включен</data>
-        <data key="dData">entry/
-LED1.on()
-timer1.start(1000)
-
-        </data>
-        <data key="dGeometry">
-            <rect x="82" y="57" width="450.0" height="95"/>
-        </data>
-    </node>
-
-    <node id="diod2">
-        <data key="dName">Выключен</data>
-        <data key="dData">entry/
-LED1.off()
-timer1.start(1000)
-
-        </data>
-        <data key="dGeometry">
-            <rect x="81" y="334" width="450" height="95" />
-        </data> 
-    </node>
-
     <node id="commentX">
-        <data key="dNote"/>
-        <data key="dData"> Включение и выключение лампочки по таймеру! </data>
-        <data key="dGeometry">
-            <point x="640" y="114" />
-        </data> 
+      <data key="dGeometry">
+        <point x="640" y="114"></point>
+      </data>
+      <data key="dNote">informal</data>
+      <data key="dData">Включение и выключение лампочки по таймеру!</data>
     </node>
-    <edge id="init-edge" source="init" target="diod1"/>
-    <edge id="edge0" source="coreMeta" target="ctimer1"> 
-        <data key="dPivot"/>
-    </edge>
-    <edge id="edge1" source="coreMeta" target="cLED1">
-        <data key="dPivot"/>
-    </edge>
+    <edge id="init-edge" source="init" target="diod1"></edge>
     <edge id="edge3" source="diod1" target="diod2">
-        <data key="dData">timer1.timeout/</data>
-        <data key="dColor">#F29727</data>
-        <data key="dLabelGeometry">
-            <point x="457" y="173"/>
-        </data> 
-    </edge>
+      <data key="dData">timer1.timeout/
 
+</data>
+      <data key="dColor">#F29727</data>
+      <data key="dLabelGeometry">
+        <point x="389" y="193"></point>
+      </data>
+    </edge>
     <edge id="edge4" source="diod2" target="diod1">
-        <data key="dData">timer1.timeout/</data>
-        <data key="dLabelGeometry">
-            <point x="16" y="175"/>
-        </data> 
-        <data key="dColor">#F24C3D</data>
-    </edge>
-</graph>
+      <data key="dData">timer1.timeout/
 
+</data>
+      <data key="dColor">#F24C3D</data>
+      <data key="dLabelGeometry">
+        <point x="81.5" y="193.46"></point>
+      </data>
+    </edge>
+  </graph>
 </graphml>
