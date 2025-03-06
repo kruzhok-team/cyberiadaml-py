@@ -20,7 +20,8 @@ except ImportError:
 #  { node: ['dGeometry', ...], edge: ['dData', ...]}
 AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
-CGMLVertexType = Literal['choice', 'initial', 'final', 'terminate']
+CGMLVertexType = Literal['choice', 'initial',
+                         'final', 'terminate', 'shallowHistory']
 CGMLNoteType = Literal['formal', 'informal']
 
 
@@ -89,6 +90,18 @@ class CGMLInitialState(CGMLBaseVertex):
 
     Intiial state is <node>, that contains data node with key 'dVertex'\
         and content 'initial'.
+    """
+
+    ...
+
+
+@dataclass
+class CGMLShallowHistory(CGMLBaseVertex):
+    """
+    Data class with information about shallow history node (pseudo node).
+
+    Choice is <node>, that contains data node with key 'dVertex'\
+        and content 'shallowHistory'.
     """
 
     ...
@@ -216,6 +229,7 @@ class CGMLStateMachine:
     finals: Dict[str, CGMLFinal]
     choices: Dict[str, CGMLChoice]
     terminates: Dict[str, CGMLTerminate]
+    shallow_history: Dict[str, CGMLShallowHistory]
     unknown_vertexes: Dict[str, CGMLBaseVertex]
     name: Optional[str] = Field(default=None)
 
@@ -243,5 +257,6 @@ Vertex = (
     CGMLChoice |
     CGMLInitialState |
     CGMLTerminate |
+    CGMLShallowHistory |
     CGMLBaseVertex
 )
