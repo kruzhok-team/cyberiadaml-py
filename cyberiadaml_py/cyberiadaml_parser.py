@@ -28,6 +28,7 @@ from cyberiadaml_py.types.elements import (
     CGMLFinal,
     CGMLMeta,
     CGMLNoteType,
+    CGMLShallowHistory,
     CGMLStateMachine,
     CGMLTerminate,
     CGMLVertexType,
@@ -75,6 +76,7 @@ def create_empty_state_machine() -> CGMLStateMachine:
         initial_states={},
         components={},
         notes={},
+        shallow_history={},
         unknown_vertexes={}
     )
 
@@ -136,15 +138,18 @@ class CGMLParser:
             initials: Dict[str, CGMLInitialState] = {}
             unknown_vertexes: Dict[str, CGMLBaseVertex] = {}
             components: Dict[str, CGMLComponent] = {}
+            shallow_history: Dict[str, CGMLShallowHistory] = {}
             vertex_dicts: Dict[CGMLVertexType,
                                tuple[Dict[str, CGMLInitialState], type] |
                                tuple[Dict[str, CGMLFinal], type] |
                                tuple[Dict[str, CGMLChoice], type] |
-                               tuple[Dict[str, CGMLTerminate], type]] = {
+                               tuple[Dict[str, CGMLTerminate], type] |
+                               tuple[Dict[str, CGMLShallowHistory], type]] = {
                 'initial': (initials, CGMLInitialState),
                 'choice': (choices, CGMLChoice),
                 'final': (finals, CGMLFinal),
-                'terminate': (terminates, CGMLTerminate)
+                'terminate': (terminates, CGMLTerminate),
+                'shallowHistory': (shallow_history, CGMLShallowHistory)
             }
             states = self._parse_graph_nodes(graph)
             transitions = self._parse_graph_edges(graph)
@@ -239,6 +244,7 @@ class CGMLParser:
                 choices=choices,
                 name=self._get_state_machine_name(graph),
                 meta=meta,
+                shallow_history=shallow_history,
                 platform=platform,
                 standard_version=standard_version,
             )
