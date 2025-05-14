@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cyberiadaml-py"
-version = "1.2.1"
+version = "1.2.3"
 description = "The Python 3 library for processing the CyberiadaML state machine graphs"
 authors = ["L140-beep <kartoshka0302@mail.ru>"]
 readme = "README.md"
