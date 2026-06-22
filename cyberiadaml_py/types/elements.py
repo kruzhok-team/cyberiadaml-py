@@ -82,6 +82,16 @@ class CGMLComponent:
     type: str
     parameters: Dict[str, str]
 
+@dataclass
+class CGMLFunction:
+    """
+    Data class with information about function
+    """
+
+    id: str
+    type: str
+    parameters: Dict[str, str]
+
 
 @dataclass
 class CGMLInitialState(CGMLBaseVertex):
