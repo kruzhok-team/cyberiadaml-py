@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 
-from cyberiadaml_py.cyberiadaml_builder import _split_graph
+from cyberiadaml_py.cyberiadaml_parser import _split_graph
 from cyberiadaml_py.types.cgml_scheme import CGMLGraph, CGMLDataNode
 
 
