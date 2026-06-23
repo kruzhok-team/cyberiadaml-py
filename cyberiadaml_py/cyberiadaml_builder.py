@@ -48,6 +48,26 @@ def create_empty_scheme() -> CGML:
         'http://graphml.graphdrawing.org/xmlns',
     ))
 
+def _split_graph(graphs: List[CGMLGraph]) -> Dict[str, List[CGMLGraph]]:
+    components = []
+    functions = []
+    for graph in graphs:
+        #Нормализуем data в список
+        data_list = graph.data
+        if data_list is None:
+            data_list = []
+        elif not isinstance(data_list, list):
+            data_list = [data_list]
+        #Ищем узел с ключом 'dName'
+        dname_n = next((item for item in data_list if item.key == "dName"), None)
+        dname_value = dname_n.content if dname_n else None
+        if dname_value == "CGML_COMPONENT":
+            components.append(graph)
+        else:
+            functions.append(graph)
+
+    return {'components': components, 'functions': functions}
+
 
 class CGMLBuilder:
     """Contains functions to build CGML scheme."""
