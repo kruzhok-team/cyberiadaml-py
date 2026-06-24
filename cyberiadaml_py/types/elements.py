@@ -91,6 +91,10 @@ class CGMLFunction:
     id: str
     type: str
     parameters: Dict[str, str]
+    inputs: List[str]
+    outputs: List[str]
+    body: str
+    name: Optional[str]
 
 
 @dataclass
@@ -260,6 +264,7 @@ class CGMLElements(BaseModel):
     state_machines: Dict[str, CGMLStateMachine]
     format: str
     keys: AvailableKeys
+    functions: Dict[str, CGMLFunction]
 
 
 Vertex = (
