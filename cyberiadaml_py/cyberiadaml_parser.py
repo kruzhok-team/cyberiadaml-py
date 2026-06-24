@@ -33,6 +33,7 @@ from cyberiadaml_py.types.elements import (
     CGMLTerminate,
     CGMLVertexType,
     CGMLComponent,
+    CGMLFunction,
     CGMLElements,
     AvailableKeys,
     CGMLInitialState,
@@ -56,7 +57,8 @@ def create_empty_elements() -> CGMLElements:
     return CGMLElements(
         state_machines={},
         format='',
-        keys=defaultdict())
+        keys=defaultdict(),
+        functions = {})
 
 
 def create_empty_state_machine() -> CGMLStateMachine:
@@ -85,32 +87,85 @@ def _is_empty_meta(meta: CGMLMeta) -> bool:
     return meta.values == {} and meta.id == ''
 
 
-def _split_graph(graphs: List[CGMLGraph]) -> Dict[str, List[CGMLGraph]]:
-    components = []
-    functions = []
-    for graph in graphs:
-        #Нормализуем data в список
-        data_list = graph.data
-        if data_list is None:
-            data_list = []
-        elif not isinstance(data_list, list):
-            data_list = [data_list]
-        #Ищем узел с ключом 'dName'
-        dname_n = next((item for item in data_list if item.key == "dName"), None)
-        dname_value = dname_n.content if dname_n else None
-        if dname_value == "CGML_COMPONENT":
-            components.append(graph)
-        else:
-            functions.append(graph)
-
-    return {'components': components, 'functions': functions}
-
-
 class CGMLParser:
     """Class that contains functions for parsing CyberiadaML."""
 
     def __init__(self) -> None:
         self.elements: CGMLElements = create_empty_elements()
+
+    
+    def _split_graph(self, graphs: List[CGMLGraph]) -> Dict[str, List[CGMLGraph]]:
+        components = []
+        functions = []
+        for graph in graphs:
+            #Нормализуем data в список
+            data_list = graph.data
+            if data_list is None:
+                data_list = []
+            elif not isinstance(data_list, list):
+                data_list = [data_list]
+            #Ищем узел с ключом 'dName'
+            dname_n = next((item for item in data_list if item.key == "dName"), None)
+            dname_value = dname_n.content if dname_n else None
+            if dname_value == "CGML_COMPONENT":
+                components.append(graph)
+            else:
+                functions.append(graph)
+
+        return {'components': components, 'functions': functions}
+
+    def parse_func_from_graph(self, func_graph: CGMLGraph) -> CGMLFunction:
+        func_data: Dict[str, str] = {}
+        data_list = to_list(func_graph.data)
+    
+        for data_item in data_list:
+            if data_item.key != "dName":
+                func_data[data_item.key] = data_item.content or ""
+    
+        inputs: List[str] = []
+        outputs: List[str] = []
+        body_parts: List[str] = []
+    
+        if func_graph.node:
+            nodes = to_list(func_graph.node)
+            for node in nodes:
+                node_data = to_list(node.data) if node.data else []
+            
+                node_type = None
+                node_name = node.id
+            
+                for data_item in node_data:
+                    if data_item.key == "dVertex":
+                        node_type = data_item.content
+                    elif data_item.key == "dName":
+                        node_name = data_item.content or node.id
+                    elif data_item.key == "dData" and data_item.content:
+                        if node_type not in ("input", "output"):
+                            body_parts.append(data_item.content)
+            
+                if node_type == "input":
+                    inputs.append(node_name)
+                elif node_type == "output":
+                    outputs.append(node_name)
+                elif node_type is None:
+                    for data_item in node_data:
+                        if data_item.key == "dData" and data_item.content:
+                            body_parts.append(data_item.content)
+    
+        body = "\n".join(body_parts) if body_parts else ""
+        name = func_data.get("dName") or func_data.get("name") or func_graph.id
+    
+        return CGMLFunction(
+            id=func_graph.id,
+            type="function",
+            parameters=func_data,
+            inputs=inputs,
+            outputs=outputs,
+            body=body,
+            name=name
+        )
+
+
 
     def parse_cgml(self, graphml: str) -> CGMLElements:
         """
@@ -140,6 +195,17 @@ class CGMLParser:
         self.elements = create_empty_elements()
         cgml = CGML(**parse(graphml))
         graphs: List[CGMLGraph] = to_list(cgml.graphml.graph)
+
+        split_result = self._split_graph(graphs)
+
+        sm_graphs = split_result['components']
+        func_graphs =  split_result['functions']
+
+        self.elements.functions = {}
+        for func_graph in func_graphs:
+            func = self.parse_func_from_graph(func_graph)
+            self.elements.functions[func.id] = func
+        
         format: str = self._get_format(cgml)
         for graph in graphs:
             keys: DefaultDict[str, List[CGMLKeyNode]
