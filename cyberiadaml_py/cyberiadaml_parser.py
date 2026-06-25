@@ -154,7 +154,7 @@ class CGMLParser:
                 'final': (finals, CGMLFinal),
                 'terminate': (terminates, CGMLTerminate),
                 'shallowHistory': (shallow_history, CGMLShallowHistory),
-                'deepHistory' : (deep_history, CGMLDeepHistory)
+                'deepHistory': (deep_history, CGMLDeepHistory)
             }
             states = self._parse_graph_nodes(graph)
             transitions = self._parse_graph_edges(graph)

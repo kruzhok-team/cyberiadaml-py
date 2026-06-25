@@ -106,6 +106,7 @@ class CGMLShallowHistory(CGMLBaseVertex):
 
     ...
 
+
 @dataclass
 class CGMLDeepHistory(CGMLBaseVertex):
     """

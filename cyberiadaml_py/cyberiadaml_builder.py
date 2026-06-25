@@ -101,7 +101,12 @@ class CGMLBuilder:
                 sm.unknown_vertexes
             )
             vertexes_nodes: List[CGMLNode] = list(
-                chain(initials, finals, terminates, choices, shallow_history, deep_history))
+                chain(initials,
+                      finals,
+                      terminates,
+                      choices,
+                      shallow_history,
+                      deep_history))
             states_with_vertexes, independent_vertexes = (
                 self._add_vertexes_to_states(
                     vertexes_nodes, vertexes, cgml_states)
