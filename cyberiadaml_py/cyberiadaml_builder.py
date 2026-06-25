@@ -88,16 +88,20 @@ class CGMLBuilder:
             shallow_history: List[CGMLNode] = self._get_vertex_nodes(
                 sm.shallow_history, 'shallowHistory'
             )
+            deep_history: List[CGMLNode] = self._get_vertex_nodes(
+                sm.deep_history, 'deepHistory'
+            )
             vertexes: Dict[str, Vertex] = (
                 sm.finals |
                 sm.choices |
                 sm.initial_states |
                 sm.terminates |
                 sm.shallow_history |
+                sm.deep_history |
                 sm.unknown_vertexes
             )
             vertexes_nodes: List[CGMLNode] = list(
-                chain(initials, finals, terminates, choices, shallow_history))
+                chain(initials, finals, terminates, choices, shallow_history, deep_history))
             states_with_vertexes, independent_vertexes = (
                 self._add_vertexes_to_states(
                     vertexes_nodes, vertexes, cgml_states)
