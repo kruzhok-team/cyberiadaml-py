@@ -24,6 +24,9 @@ from cyberiadaml_py.types.cgml_scheme import (
 )
 from cyberiadaml_py.types.elements import (
     CGMLBaseVertex,
+    CGMLInput,
+    CGMLOutput,
+    CGMLBlock,
     CGMLChoice,
     CGMLFinal,
     CGMLMeta,
@@ -95,7 +98,7 @@ class CGMLParser:
 
     
     def _split_graph(self, graphs: List[CGMLGraph]) -> Dict[str, List[CGMLGraph]]:
-        components = []
+        state_machines = []
         functions = []
         for graph in graphs:
             #Нормализуем data в список
@@ -108,60 +111,89 @@ class CGMLParser:
             dname_n = next((item for item in data_list if item.key == "dName"), None)
             dname_value = dname_n.content if dname_n else None
             if dname_value == "CGML_COMPONENT":
-                components.append(graph)
+                state_machines.append(graph)
             else:
                 functions.append(graph)
 
-        return {'components': components, 'functions': functions}
+        return {'state_machines': state_machines, 'functions': functions}
 
     def parse_func_from_graph(self, func_graph: CGMLGraph) -> CGMLFunction:
         func_data: Dict[str, str] = {}
         data_list = to_list(func_graph.data)
-    
+
         for data_item in data_list:
             if data_item.key != "dName":
                 func_data[data_item.key] = data_item.content or ""
-    
-        inputs: List[str] = []
-        outputs: List[str] = []
-        body_parts: List[str] = []
-    
+
+        inputs: List[CGMLInput] = []
+        outputs: List[CGMLOutput] = []
+        blocks: List[CGMLBlock] = []
+
         if func_graph.node:
             nodes = to_list(func_graph.node)
             for node in nodes:
                 node_data = to_list(node.data) if node.data else []
-            
+
+                #Node - блок обработки данных
                 node_type = None
                 node_name = node.id
-            
+                node_data_type = None
+                node_block = None
+                node_position = None
+
                 for data_item in node_data:
                     if data_item.key == "dVertex":
                         node_type = data_item.content
                     elif data_item.key == "dName":
                         node_name = data_item.content or node.id
                     elif data_item.key == "dData" and data_item.content:
-                        if node_type not in ("input", "output"):
-                            body_parts.append(data_item.content)
-            
+                        if node_type == "block":
+                            node_block = data_item.content
+                        else:
+                            node_data_type = data_item.content
+                    elif data_item.key == "dGeometry":
+                        if data_item.rect is not None:
+                            node_position = Rectangle(
+                                x=data_item.rect.x,
+                                y=data_item.rect.y,
+                                width=data_item.rect.width,
+                                height=data_item.rect.height
+                            )
+
                 if node_type == "input":
-                    inputs.append(node_name)
+                    inputs.append(CGMLInput(
+                        type="input",
+                        data=node_name,
+                        position=node_position,
+                        parent=None,
+                        data_type=node_data_type
+                    ))
                 elif node_type == "output":
-                    outputs.append(node_name)
-                elif node_type is None:
-                    for data_item in node_data:
-                        if data_item.key == "dData" and data_item.content:
-                            body_parts.append(data_item.content)
-    
-        body = "\n".join(body_parts) if body_parts else ""
+                    outputs.append(CGMLOutput(
+                        type="output",
+                        data=node_name,
+                        position=node_position,
+                        parent=None,
+                        data_type=node_data_type
+                    ))
+                elif node_type == "block":
+                    blocks.append(CGMLBlock(
+                        type="block",
+                        data=node_name,
+                        position=node_position,
+                        parent=None,
+                        block_type=node_block
+                    ))
+
         name = func_data.get("dName") or func_data.get("name") or func_graph.id
-    
+
         return CGMLFunction(
             id=func_graph.id,
             type="function",
             parameters=func_data,
             inputs=inputs,
             outputs=outputs,
-            body=body,
+            body=blocks,
             name=name
         )
 
@@ -198,7 +230,7 @@ class CGMLParser:
 
         split_result = self._split_graph(graphs)
 
-        sm_graphs = split_result['components']
+        sm_graphs = split_result['state_machines']
         func_graphs =  split_result['functions']
 
         self.elements.functions = {}
