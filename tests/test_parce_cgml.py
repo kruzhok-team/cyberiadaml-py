@@ -6,107 +6,109 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import pytest
 
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
+from cyberiadaml_py.types.common import Point, Rectangle
+from cyberiadaml_py.types.elements import CGMLInput, CGMLOutput, CGMLBlock
 
 
-class TestFunctionsFromXML:
-    """Тесты для парсинга функций из XML-файла."""
 
-    def test_parse_functions_from_file(self):
-        """Тест: парсинг всех функций из XML-файла."""
+"""Тесты для парсинга функций из XML-файла."""
 
-        xml_file = Path(__file__).parent / "testfile_for_func.xml"
+def test_parse_functions_from_file():
+    """Тест: парсинг всех функций из XML-файла."""
+    xml_file = Path(__file__).parent / "testfile_for_func.xml"
+    assert xml_file.exists(), f"Файл {xml_file} не найден!"
 
-        assert xml_file.exists(), f"Файл {xml_file} не найден!"
+    with open(xml_file, 'r', encoding='utf-8') as f:
+        xml_content = f.read()
 
-        with open(xml_file, 'r', encoding='utf-8') as f:
-            xml_content = f.read()
+    parser = CGMLParser()
+    elements = parser.parse_cgml(xml_content)
 
-        parser = CGMLParser()
-        elements = parser.parse_cgml(xml_content)
+    # Проверяем, что функции распарсены
+    assert len(elements.functions) == 1, "Должна быть ровно одна функция"
+    func = elements.functions.get("func_sum")
+    assert func is not None, "Функция func_sum не найдена"
 
-        assert len(elements.functions) == 4, f"Ожидалось 4 функции, получено {len(elements.functions)}"
+    # Проверяем основные поля
+    assert func.id == "func_sum"
+    assert func.type == "function"
+    assert func.name == "Функция сложения" or func.name == "func_sum"
+    assert "dStateMachine" in func.parameters
+    assert func.parameters["dStateMachine"] == "true"
 
-        func1 = elements.functions.get('simple_function')
-        assert func1 is not None, "Функция 'simple_function' не найдена"
-        assert func1.id == 'simple_function'
-        assert func1.type == 'function'
-        assert 'dData' in func1.parameters
-        assert 'description/Простая функция' in func1.parameters['dData']
-        assert func1.inputs == ['x']
-        assert func1.outputs == ['result']
-        assert 'result = x * 2' in func1.body
-        assert 'print("x =", x)' in func1.body
-        assert func1.name == 'simple_function'
+    # Проверяем входы
+    assert len(func.inputs) == 2, "Должно быть 2 входа"
+    input_a = next((inp for inp in func.inputs if inp.data == "a"), None)
+    input_b = next((inp for inp in func.inputs if inp.data == "b"), None)
+    assert input_a is not None, "Вход 'a' не найден"
+    assert input_b is not None, "Вход 'b' не найден"
 
-        print("simple_function: OK")
+    # Проверяем тип данных и геометрию для входа a
+    assert input_a.data_type == "int"
+    assert isinstance(input_a.position, Rectangle)
+    assert input_a.position.x == 50
+    assert input_a.position.y == 100
+    assert input_a.position.width == 40
+    assert input_a.position.height == 40
 
+    # Проверяем вход b
+    assert input_b.data_type == "int"
+    assert isinstance(input_b.position, Rectangle)
+    assert input_b.position.x == 50
+    assert input_b.position.y == 200
+    assert input_b.position.width == 40
+    assert input_b.position.height == 40
 
-        func2 = elements.functions.get('math_function')
-        assert func2 is not None, "Функция 'math_function' не найдена"
-        assert func2.id == 'math_function'
-        assert func2.type == 'function'
-        assert len(func2.inputs) == 2
-        assert 'a' in func2.inputs
-        assert 'b' in func2.inputs
-        assert len(func2.outputs) == 2
-        assert 'sum' in func2.outputs
-        assert 'product' in func2.outputs
-        assert 'sum = a + b' in func2.body
-        assert 'product = a * b' in func2.body
-        assert 'print("Sum:", sum, "Product:", product)' in func2.body
+    # Проверяем выходы
+    assert len(func.outputs) == 1, "Должен быть 1 выход"
+    output = func.outputs[0]
+    assert output.data == "result"
+    assert output.data_type == "int"
+    assert isinstance(output.position, Rectangle)
+    assert output.position.x == 450
+    assert output.position.y == 150
+    assert output.position.width == 40
+    assert output.position.height == 40
 
-        print("math_function: OK")
+    # Проверяем блоки (body)
+    assert len(func.body) == 1, "Должен быть 1 блок"
+    block = func.body[0]
+    assert block.data == "Сложение"
+    assert block.block_type == "ADD"
+    assert isinstance(block.position, Rectangle)
+    assert block.position.x == 200
+    assert block.position.y == 150
+    assert block.position.width == 150
+    assert block.position.height == 50
 
-        func3 = elements.functions.get('void_function')
-        assert func3 is not None, "Функция 'void_function' не найдена"
-        assert func3.id == 'void_function'
-        assert func3.type == 'function'
-        assert len(func3.inputs) == 0
-        assert len(func3.outputs) == 0
-        assert 'print("Hello World")' in func3.body
-        assert 'print("Goodbye World")' in func3.body
+    print("Все проверки пройдены!")
 
-        print("void_function: OK")
+def test_parse_func_from_graph_direct():
+    """Тест: прямой вызов parse_func_from_graph."""
+    xml_file = Path(__file__).parent / "testfile_for_func.xml"
+    if not xml_file.exists():
+        pytest.skip(f"Файл {xml_file} не найден, используйте testfile_for_func.xml")
 
-        func4 = elements.functions.get('nested_function')
-        assert func4 is not None, "Функция 'nested_function' не найдена"
-        assert func4.id == 'nested_function'
-        assert func4.type == 'function'
-        assert len(func4.inputs) == 1
-        assert func4.inputs[0] == 'value'
-        assert len(func4.outputs) == 1
-        assert func4.outputs[0] == 'result'
+    with open(xml_file, 'r', encoding='utf-8') as f:
+        xml_content = f.read()
 
-        print("nested_function: OK")
+    parser = CGMLParser()
+    elements = parser.parse_cgml(xml_content)
 
-        assert 'component_graph' in elements.state_machines, "Компонент 'component_graph' не найден"
+    func = elements.functions.get("func_sum")
+    assert func is not None, "Функция func_sum не найдена"
+    # Проверяем структуру объектов
+    for inp in func.inputs:
+        assert isinstance(inp, CGMLInput)
+        assert inp.type == "input"
+    for out in func.outputs:
+        assert isinstance(out, CGMLOutput)
+        assert out.type == "output"
+    for block in func.body:
+        assert isinstance(block, CGMLBlock)
+        assert block.type == "block"
 
-        print("Компоненты: OK")
-        print(f"\nВсего функций: {len(elements.functions)}")
-        print("Все тесты пройдены!")
-
-    def test_parse_func_from_graph_direct(self):
-        """Тест: прямой вызов parse_func_from_graph."""
-
-        xml_file = Path(__file__).parent / "testfile_for_func.xml"
-
-        with open(xml_file, 'r', encoding='utf-8') as f:
-            xml_content = f.read()
-
-        parser = CGMLParser()
-        elements = parser.parse_cgml(xml_content)
-
-        # Проверяем, что каждая функция имеет правильную структуру
-        for func_id, func in elements.functions.items():
-            assert func.id == func_id
-            assert func.type == 'function'
-            assert isinstance(func.parameters, dict)
-            assert isinstance(func.inputs, list)
-            assert isinstance(func.outputs, list)
-            assert isinstance(func.body, str)
-            assert isinstance(func.name, str)
-
-        print("Все функции имеют правильную структуру")
+    print("Прямой вызов parse_func_from_graph корректен")
 
 
 if __name__ == "__main__":
