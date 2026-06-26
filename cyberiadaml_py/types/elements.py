@@ -41,6 +41,17 @@ class CGMLBaseVertex:
     position: Optional[Point | Rectangle] = None
     parent: Optional[str] = None
 
+@dataclass
+class CGMLInput(CGMLBaseVertex):
+    data_type: Optional[str] = None
+
+@dataclass
+class CGMLOutput(CGMLBaseVertex):
+    data_type: Optional[str] = None
+
+@dataclass
+class CGMLBlock(CGMLBaseVertex):
+    block_type: Optional[str] = None
 
 @dataclass
 class CGMLState:
@@ -90,11 +101,11 @@ class CGMLFunction:
 
     id: str
     type: str
-    parameters: Dict[str, str]
-    inputs: List[str]
-    outputs: List[str]
-    body: str
-    name: Optional[str]
+    parameters: Dict[str, str] 
+    inputs: List[CGMLInput]
+    outputs: List[CGMLOutput]
+    body: List[CGMLBlock] 
+    name: Optional[str] = None
 
 
 @dataclass
