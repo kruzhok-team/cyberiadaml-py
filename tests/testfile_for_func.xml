@@ -1,191 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <graphml xmlns="http://graphml.graphdrawing.org/xmlns">
-  <key id="dName" for="graph" attr.name="name"/>
-  <key id="dNote" for="node" attr.name="note"/>
-  <key id="dVertex" for="node" attr.name="vertex_type"/>
-  <key id="dData" for="node" attr.name="data"/>
-  <key id="dData" for="edge" attr.name="data"/>
-  <key id="dStateMachine" for="graph"/>
-  <key id="gFormat" for="graphml"/>
+	<data key="gFormat">Cyberiada-GraphML-1.0</data>
 
-  <data key="gFormat">CyberiadaML</data>
+	<key attr.name="name" attr.type="string" for="node" id="dName"></key>
+	<key attr.name="data" attr.type="string" for="node" id="dData"></key>
+	<key attr.name="data" attr.type="string" for="edge" id="dData"></key>
+	<key for="node" id="dVertex"></key>
+	<key for="node" id="dGeometry"></key>
+	<key for="edge" id="dGeometry"></key>
 
-  <graph id="simple_function" edgedefault="directed">
-    <data key="dStateMachine">StateMachine</data>
-    <data key="dName">CGML_FUNCTION</data>
-    <data key="dData">description/Простая функция
+	<graph id="func_sum" edgedefault="directed">
+		<data key="dName">Функция сложения</data>
+		<data key="dStateMachine">true</data>
 
-author/Иван Иванов
+		<node id="input_a">
+			<data key="dVertex">input</data>
+			<data key="dName">a</data>
+			<data key="dData">int</data>
+			<data key="dGeometry">
+				<rect x="50" y="100" width="40" height="40"></rect>
+			</data>
+		</node>
 
-version/1.0</data>
+		<node id="input_b">
+			<data key="dVertex">input</data>
+			<data key="dName">b</data>
+			<data key="dData">int</data>
+			<data key="dGeometry">
+				<rect x="50" y="200" width="40" height="40"></rect>
+			</data>
+		</node>
 
-    <node id="input_x">
-      <data key="dVertex">input</data>
-      <data key="dName">x</data>
-      <data key="dData">int</data>
-    </node>
+		<node id="output_result">
+			<data key="dVertex">output</data>
+			<data key="dName">result</data>
+			<data key="dData">int</data>
+			<data key="dGeometry">
+				<rect x="450" y="150" width="40" height="40"></rect>
+			</data>
+		</node>
 
-    <node id="output_result">
-      <data key="dVertex">output</data>
-      <data key="dName">result</data>
-      <data key="dData">int</data>
-    </node>
+		<node id="action_sum">
+			<data key="dVertex">block</data>
+			<data key="dName">Сложение</data>
+			<data key="dData">ADD</data>
+			<data key="dGeometry">
+				<rect x="200" y="150" width="150" height="50"></rect>
+			</data>
+		</node>
 
-    <node id="action1">
-      <data key="dData">result = x * 2</data>
-    </node>
-
-    <node id="action2">
-      <data key="dData">print("x =", x)</data>
-    </node>
-
-
-    <edge id="e1" source="input_x" target="action1"/>
-    <edge id="e2" source="action1" target="action2"/>
-    <edge id="e3" source="action2" target="output_result"/>
-  </graph>
-
-
-  <graph id="math_function" edgedefault="directed">
-    <data key="dStateMachine">StateMachine</data>
-    <data key="dName">CGML_FUNCTION</data>
-    <data key="dData">description/Математическая функция
-
-author/Петр Петров</data>
-
-    <node id="input_a">
-      <data key="dVertex">input</data>
-      <data key="dName">a</data>
-      <data key="dData">int</data>
-    </node>
-
-    <node id="input_b">
-      <data key="dVertex">input</data>
-      <data key="dName">b</data>
-      <data key="dData">int</data>
-    </node>
-
-
-    <node id="output_sum">
-      <data key="dVertex">output</data>
-      <data key="dName">sum</data>
-      <data key="dData">int</data>
-    </node>
-
-    <node id="output_product">
-      <data key="dVertex">output</data>
-      <data key="dName">product</data>
-      <data key="dData">int</data>
-    </node>
-
-    <node id="action_sum">
-      <data key="dData">sum = a + b</data>
-    </node>
-
-    <node id="action_product">
-      <data key="dData">product = a * b</data>
-    </node>
-
-    <node id="action_print">
-      <data key="dData">print("Sum:", sum, "Product:", product)</data>
-    </node>
-
-    <edge id="e1" source="input_a" target="action_sum"/>
-    <edge id="e2" source="input_b" target="action_sum"/>
-    <edge id="e3" source="action_sum" target="action_product"/>
-    <edge id="e4" source="action_product" target="action_print"/>
-    <edge id="e5" source="action_print" target="output_sum"/>
-    <edge id="e6" source="action_print" target="output_product"/>
-  </graph>
-
-
-  <graph id="void_function" edgedefault="directed">
-    <data key="dStateMachine">StateMachine</data>
-    <data key="dName">CGML_FUNCTION</data>
-    <data key="dData">description/Функция без параметров</data>
-
-
-    <node id="action_hello">
-      <data key="dData">print("Hello World")</data>
-    </node>
-
-    <node id="action_goodbye">
-      <data key="dData">print("Goodbye World")</data>
-    </node>
-
-    <edge id="e1" source="action_hello" target="action_goodbye"/>
-  </graph>
-
-
-  <graph id="component_graph" edgedefault="directed">
-    <data key="dStateMachine">StateMachine</data>
-    <data key="dName">CGML_COMPONENT</data>
-
-    <node id="cEyes1">
-      <data key="dNote">formal</data>
-      <data key="dName">CGML_COMPONENT</data>
-      <data key="dGeometry">
-        <point x="100" y="100"/>
-      </data>
-      <data key="dData">id/Eyes1
-
-type/Eyes
-
-label/eye</data>
-    </node>
-
-    <node id="cSpeaker1">
-      <data key="dNote">formal</data>
-      <data key="dName">CGML_COMPONENT</data>
-      <data key="dGeometry">
-        <point x="100" y="200"/>
-      </data>
-      <data key="dData">id/Speaker1
-
-type/Speaker
-
-label/speaker</data>
-    </node>
-  </graph>
-
-
-  <graph id="nested_function" edgedefault="directed">
-    <data key="dStateMachine">StateMachine</data>
-    <data key="dName">CGML_FUNCTION</data>
-    <data key="dData">description/Функция с вложенными узлами</data>
-
-    <node id="input_value">
-      <data key="dVertex">input</data>
-      <data key="dName">value</data>
-      <data key="dData">float</data>
-    </node>
-
-    <node id="nested_calc">
-      <data key="dName">Внутренний блок</data>
-      <graph id="inner_graph" edgedefault="directed">
-        <node id="inner_input">
-          <data key="dVertex">input</data>
-          <data key="dName">val</data>
-        </node>
-        <node id="inner_action">
-          <data key="dData">result = val * 2</data>
-        </node>
-        <node id="inner_output">
-          <data key="dVertex">output</data>
-          <data key="dName">out</data>
-        </node>
-        <edge id="ie1" source="inner_input" target="inner_action"/>
-        <edge id="ie2" source="inner_action" target="inner_output"/>
-      </graph>
-    </node>
-
-    <node id="output_result">
-      <data key="dVertex">output</data>
-      <data key="dName">result</data>
-      <data key="dData">float</data>
-    </node>
-
-    <edge id="e1" source="input_value" target="nested_calc"/>
-    <edge id="e2" source="nested_calc" target="output_result"/>
-  </graph>
+		<edge id="e1" source="input_a" target="action_sum">
+			<data key="dData">a</data>
+		</edge>
+		<edge id="e2" source="input_b" target="action_sum">
+			<data key="dData">b</data>
+		</edge>
+		<edge id="e3" source="action_sum" target="output_result">
+			<data key="dData">result</data>
+		</edge>
+	</graph>
 </graphml>
