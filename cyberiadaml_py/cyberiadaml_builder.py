@@ -386,14 +386,14 @@ class CGMLBuilder:
         for key, value in func.parameters.items():
             data_nodes.append(CGMLDataNode(key, value))
         nodes: List[CGMLNode] = []
-        #входы
+        # входы
         input_ids = []
         for inp in func.inputs:
-            node_id = f"{func.id}_input_{inp.data}"
+            node_id = f'{func.id}_input_{inp.data}'
             input_ids.append(node_id)
             node = self._create_vertex_node(
                 node_id,
-                vertex_type="input",
+                vertex_type='input',
                 name=inp.data,
                 data_type=inp.data_type,
                 position=inp.position
@@ -402,11 +402,11 @@ class CGMLBuilder:
         # Выходы
         output_ids = []
         for out in func.outputs:
-            node_id = f"{func.id}_output_{out.data}"
+            node_id = f'{func.id}_output_{out.data}'
             output_ids.append(node_id)
             node = self._create_vertex_node(
                 node_id,
-                vertex_type="output",
+                vertex_type='output',
                 name=out.data,
                 data_type=out.data_type,
                 position=out.position
@@ -415,11 +415,11 @@ class CGMLBuilder:
         # Блоки
         block_ids = []
         for block in func.body:
-            node_id = f"{func.id}_block_{block.data}"
+            node_id = f'{func.id}_block_{block.data}'
             block_ids.append(node_id)
             node = self._create_vertex_node(
                 node_id,
-                vertex_type="block",
+                vertex_type='block',
                 name=block.data,
                 block_type=block.block_type,
                 position=block.position
@@ -430,35 +430,48 @@ class CGMLBuilder:
         if block_ids and input_ids:
             first_block = block_ids[0]
             for inp_id in input_ids:
-                edge = CGMLEdge(f"{func.id}_e_{inp_id}", inp_id, first_block)
-                edge.data = [CGMLDataNode("dData", inp.data)]
+                edge = CGMLEdge(f'{func.id}_e_{inp_id}', inp_id, first_block)
+                edge.data = [CGMLDataNode('dData', inp.data)]
                 edges.append(edge)
         # Соединяем блоки последовательно
         len_block_ids = len(block_ids)
         if len_block_ids > 1:
             for i in range(len_block_ids - 1):
-                    edge = CGMLEdge(f"{func.id}_e_{block_ids[i]}", block_ids[i], block_ids[i+1])
-                    edges.append(edge)
+                edge = CGMLEdge(
+                    f'{func.id}_e_{block_ids[i]}',
+                    block_ids[i],
+                    block_ids[i + 1]
+                )
+                edges.append(edge)
         # Соединяем последний блок с каждым выходом
         if block_ids and output_ids:
             last_block = block_ids[-1]
             for out_id in output_ids:
-                edge = CGMLEdge(f"{func.id}_e_{last_block}_{out_id}", last_block, out_id)
+                edge = CGMLEdge(
+                    f'{func.id}_e_{last_block}_{out_id}',
+                    last_block,
+                    out_id
+                )
                 edge.data = [CGMLDataNode('dData', out.data)]
                 edges.append(edge)
-        # Если нет блоков, но есть входы и выходы: соединяем входы напрямую с выходами
+        # Если нет блоков, но есть входы и выходы:
+        # соединяем входы напрямую с выходами
         if not block_ids and input_ids and output_ids:
             for inp_id in input_ids:
                 for out_id in output_ids:
-                    edge = CGMLEdge(f"{func.id}_e_{inp_id}_{out_id}", inp_id, out_id)
+                    edge = CGMLEdge(
+                        f'{func.id}_e_{inp_id}_{out_id}',
+                        inp_id,
+                        out_id
+                    )
                     edges.append(edge)
         return CGMLGraph(
-        func.id,
-        data_nodes,
-        'directed',
-        node=nodes,
-        edge=edges
-    )
+            func.id,
+            data_nodes,
+            'directed',
+            node=nodes,
+            edge=edges
+        )
 
     def _get_function_graphs(self, functions: Dict[str, CGMLFunction]) -> List[CGMLGraph]:
         graphs: List[CGMLGraph] = []
@@ -478,13 +491,12 @@ class CGMLBuilder:
         if data_type is not None:
             data.append(CGMLDataNode('dData', data_type))
         if block_type is not None:
-            data.append(CGMLDataNode('dData', block_type)   )
+            data.append(CGMLDataNode('dData', block_type))
         if position is not None:
             if isinstance(position, Point):
                 data.append(self._point_to_data(position))
             elif isinstance(position, Rectangle):
                 data.append(self._bounds_to_data(position))
-
-        return  CGMLNode(node_id, data=data)
+        return CGMLNode(node_id, data=data)
                 
            
