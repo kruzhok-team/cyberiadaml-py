@@ -98,6 +98,16 @@ class CGMLParser:
 
     
     def _split_graph(self, graphs: List[CGMLGraph]) -> Dict[str, List[CGMLGraph]]:
+        """
+        Split graphs into state machines (components) and functions based on dName.
+
+        Args:
+            graphs: list of CGMLGraph objects.
+
+        Returns:
+            Dictionary with keys 'state_machines' and 'functions'.
+        """
+
         state_machines = []
         functions = []
         for graph in graphs:
@@ -108,9 +118,9 @@ class CGMLParser:
             elif not isinstance(data_list, list):
                 data_list = [data_list]
             #Ищем узел с ключом 'dName'
-            dname_n = next((item for item in data_list if item.key == "dName"), None)
+            dname_n = next((item for item in data_list if item.key == 'dName'), None)
             dname_value = dname_n.content if dname_n else None
-            if dname_value == "CGML_COMPONENT":
+            if dname_value == 'CGML_COMPONENT':
                 state_machines.append(graph)
             else:
                 functions.append(graph)
@@ -118,12 +128,22 @@ class CGMLParser:
         return {'state_machines': state_machines, 'functions': functions}
 
     def parse_func_from_graph(self, func_graph: CGMLGraph) -> CGMLFunction:
+        """
+        Parse a single graph into a CGMLFunction object.
+
+        Args:
+            func_graph: graph object representing a function.
+
+        Returns:
+            CGMLFunction instance with parsed data.
+        """
+
         func_data: Dict[str, str] = {}
         data_list = to_list(func_graph.data)
 
         for data_item in data_list:
-            if data_item.key != "dName":
-                func_data[data_item.key] = data_item.content or ""
+            if data_item.key != 'dName':
+                func_data[data_item.key] = data_item.content or ''
 
         inputs: List[CGMLInput] = []
         outputs: List[CGMLOutput] = []
@@ -134,7 +154,7 @@ class CGMLParser:
             for node in nodes:
                 node_data = to_list(node.data) if node.data else []
 
-                #Node - блок обработки данных
+                # Node - блок обработки данных
                 node_type = None
                 node_name = node.id
                 node_data_type = None
@@ -142,16 +162,16 @@ class CGMLParser:
                 node_position = None
 
                 for data_item in node_data:
-                    if data_item.key == "dVertex":
+                    if data_item.key == 'dVertex':
                         node_type = data_item.content
-                    elif data_item.key == "dName":
+                    elif data_item.key == 'dName':
                         node_name = data_item.content or node.id
-                    elif data_item.key == "dData" and data_item.content:
-                        if node_type == "block":
+                    elif data_item.key == 'dData' and data_item.content:
+                        if node_type == 'block':
                             node_block = data_item.content
                         else:
                             node_data_type = data_item.content
-                    elif data_item.key == "dGeometry":
+                    elif data_item.key == 'dGeometry':
                         if data_item.rect is not None:
                             node_position = Rectangle(
                                 x=data_item.rect.x,
@@ -160,36 +180,36 @@ class CGMLParser:
                                 height=data_item.rect.height
                             )
 
-                if node_type == "input":
+                if node_type == 'input':
                     inputs.append(CGMLInput(
-                        type="input",
+                        type='input',
                         data=node_name,
                         position=node_position,
                         parent=None,
                         data_type=node_data_type
                     ))
-                elif node_type == "output":
+                elif node_type == 'output':
                     outputs.append(CGMLOutput(
-                        type="output",
+                        type='output',
                         data=node_name,
                         position=node_position,
                         parent=None,
                         data_type=node_data_type
                     ))
-                elif node_type == "block":
+                elif node_type == 'block':
                     blocks.append(CGMLBlock(
-                        type="block",
+                        type='block',
                         data=node_name,
                         position=node_position,
                         parent=None,
                         block_type=node_block
                     ))
 
-        name = func_data.get("dName") or func_data.get("name") or func_graph.id
+        name = func_data.get('dName') or func_data.get('name') or func_graph.id
 
         return CGMLFunction(
             id=func_graph.id,
-            type="function",
+            type='function',
             parameters=func_data,
             inputs=inputs,
             outputs=outputs,
@@ -229,8 +249,6 @@ class CGMLParser:
         graphs: List[CGMLGraph] = to_list(cgml.graphml.graph)
 
         split_result = self._split_graph(graphs)
-
-        sm_graphs = split_result['state_machines']
         func_graphs =  split_result['functions']
 
         self.elements.functions = {}
