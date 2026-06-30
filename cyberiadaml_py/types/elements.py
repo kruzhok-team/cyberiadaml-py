@@ -17,7 +17,7 @@ try:
 except ImportError:
     from cyberiadaml_py.types.cgml_scheme import CGMLDataNode, CGMLKeyNode
     from cyberiadaml_py.types.common import Point, Rectangle
-#  { node: ['dGeometry', ...], edge: ['dData', ...]}
+
 AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
 CGMLVertexType = Literal['choice', 'initial',
@@ -44,16 +44,22 @@ class CGMLBaseVertex:
 
 @dataclass
 class CGMLInput(CGMLBaseVertex):
+    """The vertex representing the input parameter of the function."""
+
     data_type: Optional[str] = None
 
-    
+
 @dataclass
 class CGMLOutput(CGMLBaseVertex):
+    """The vertex representing the output parameter of the function."""
+
     data_type: Optional[str] = None
 
 
 @dataclass
 class CGMLBlock(CGMLBaseVertex):
+    """A vertex representing a block of code or an action inside a function."""
+
     block_type: Optional[str] = None
 
 
@@ -62,8 +68,8 @@ class CGMLState:
     """
     Data class with information about state.
 
-    State is <node>, that not connected with meta node,\
-        doesn't have data node with key 'dNote'
+    State is <node>, that not connected with meta node,
+    doesn't have data node with key 'dNote'
 
     Parameters:
     name: content of data node with key 'dName'.
@@ -71,8 +77,7 @@ class CGMLState:
     bounds: x, y, width, height properties of data node with key 'dGeometry'.
     parent: parent state id.
     color: content of data node with key 'dColor'.
-    unknownDatanodes: all datanodes, whose information\
-        is not included in the type.
+    unknownDatanodes: all datanodes, whose information is not included.
     """
 
     name: str
@@ -88,8 +93,8 @@ class CGMLComponent:
     """
     Data class with information about component.
 
-    Component is formal note, that includes <data>-node with key 'dName'\
-        and content 'CGML_COMPONENT'.
+    Component is formal note, that includes <data>-node with key 'dName'
+    and content 'CGML_COMPONENT'.
     parameters: content of data node with key 'dData'.
     """
 
@@ -99,27 +104,12 @@ class CGMLComponent:
 
 
 @dataclass
-class CGMLFunction:
-    """
-    Data class with information about function
-    """
-
-    id: str
-    type: str
-    parameters: Dict[str, str] 
-    inputs: List[CGMLInput]
-    outputs: List[CGMLOutput]
-    body: List[CGMLBlock] 
-    name: Optional[str] = None
-
-
-@dataclass
 class CGMLInitialState(CGMLBaseVertex):
     """
     Data class with information about initial state (pseudo node).
 
-    Intiial state is <node>, that contains data node with key 'dVertex'\
-        and content 'initial'.
+    Intiial state is <node>, that contains data node with key 'dVertex'
+    and content 'initial'.
     """
 
     ...
@@ -130,8 +120,8 @@ class CGMLShallowHistory(CGMLBaseVertex):
     """
     Data class with information about shallow history node (pseudo node).
 
-    Choice is <node>, that contains data node with key 'dVertex'\
-        and content 'shallowHistory'.
+    Choice is <node>, that contains data node with key 'dVertex'
+    and content 'shallowHistory'.
     """
 
     ...
@@ -142,8 +132,8 @@ class CGMLChoice(CGMLBaseVertex):
     """
     Data class with information about choice node (pseudo node).
 
-    Choice is <node>, that contains data node with key 'dVertex'\
-        and content 'choice'.
+    Choice is <node>, that contains data node with key 'dVertex'
+    and content 'choice'.
     """
 
     ...
@@ -160,8 +150,7 @@ class CGMLTransition:
     actions: content of data node with 'dData' key.
     color: content of data node with 'dColor' key.
     position: x, y properties of data node with 'dGeometry' key.
-    unknownDatanodes: all datanodes, whose information\
-        is not included in the type.
+    unknownDatanodes: all datanodes, whose information is not included.
     """
 
     id: str
@@ -176,6 +165,20 @@ class CGMLTransition:
 
 
 @dataclass
+class CGMLFunction:
+    """Data class with information about function."""
+
+    id: str
+    type: str
+    parameters: Dict[str, str]
+    inputs: Dict[str, CGMLInput]
+    outputs: Dict[str, CGMLOutput]
+    edges: Dict[str, CGMLTransition]
+    body: Dict[str, CGMLBlock]
+    name: Optional[str]
+
+
+@dataclass
 class CGMLNote:
     """
     Dataclass with infromation about note.
@@ -184,10 +187,8 @@ class CGMLNote:
     type: content of <data key="dNote">
     text: content of <data key="dData">
     name: content of <data key="dName">
-    position: properties <data key="dGeometry">'s child\
-        <point> or <rect>
-    unknownDatanodes: all datanodes, whose information\
-        is not included in the type.
+    position: properties <data key="dGeometry">'s child <point> or <rect>
+    unknownDatanodes: all datanodes, whose information is not included.
     """
 
     name: str
@@ -201,8 +202,8 @@ class CGMLNote:
 @dataclass
 class CGMLMeta:
     """
-    The type represents meta-information from formal\
-        note with 'dName' CGML_META.
+    The type represents meta-information\
+    from formal note with 'dName' CGML_META.
 
     id: meta-node id.
     values: information from meta node, exclude required parameters.
@@ -217,8 +218,7 @@ class CGMLFinal(CGMLBaseVertex):
     """
     The type represents final-states.
 
-    Final state - <node>, that includes dVertex\
-        with content 'final'.
+    Final state - <node>, that includes dVertex with content 'final'.
     """
 
     ...
@@ -229,8 +229,7 @@ class CGMLTerminate(CGMLBaseVertex):
     """
     The type represents terminate-states.
 
-    Final state - <node>, that includes dVertex\
-        with content 'terminate'.
+    Final state - <node>, that includes dVertex with content 'terminate'.
     """
 
     ...
@@ -269,12 +268,10 @@ class CGMLElements(BaseModel):
     Dataclass with elements of parsed scheme.
 
     Parameters:
-    meta: content of data node\
-        with key 'dData' inside meta-node.
+    meta: content of data node with key 'dData' inside meta-node.
     format: content of data node with key 'gFormat'.
     platform: content of meta-data
-    keys: dict of KeyNodes, where the key is 'for' attribute.\
-        Example: { "node": [KeyNode, ...], "edge": [...] }
+    keys: dict of KeyNodes, where the key is 'for' attribute.
     """
 
     state_machines: Dict[str, CGMLStateMachine]
