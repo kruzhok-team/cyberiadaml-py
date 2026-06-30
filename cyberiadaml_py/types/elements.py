@@ -120,8 +120,8 @@ class CGMLShallowHistory(CGMLBaseVertex):
     """
     Data class with information about shallow history node (pseudo node).
 
-    Choice is <node>, that contains data node with key 'dVertex'
-    and content 'shallowHistory'.
+    ShallowHistory is <node>, that contains data node with key 'dVertex'\
+        and content 'shallowHistory'.
     """
 
     ...
