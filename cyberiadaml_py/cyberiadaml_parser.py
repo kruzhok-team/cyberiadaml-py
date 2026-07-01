@@ -155,16 +155,15 @@ class CGMLParser:
         outputs: Dict[str, CGMLOutput] = {}
         blocks: Dict[str, CGMLBlock] = {}
         edges: Dict[str, CGMLTransition] = {}
-        if func_graph.edge:
-            edge_list = to_list(func_graph.edge)
-            for edge in edge_list:
-                transition = CGMLTransition(
-                    id=edge.id,
-                    source=edge.source,
-                    target=edge.target,
-                    actions='',
-                    unknown_datanodes=to_list(edge.data) if edge.data else []
-                )
+        edge_list = to_list(func_graph.edge)
+        for edge in edge_list:
+            transition = CGMLTransition(
+                id=edge.id,
+                source=edge.source,
+                target=edge.target,
+                actions='',
+                unknown_datanodes=to_list(edge.data) if edge.data else []
+            )
             for data_node in transition.unknown_datanodes:
                 if data_node.key == 'dData':
                     transition.actions = data_node.content or ''
@@ -280,7 +279,7 @@ class CGMLParser:
             func = self.parse_func_from_graph(func_graph)
             self.elements.functions[func.id] = func
 
-        format_str: str = self._get_format(cgml)
+        format: str = self._get_format(cgml)
         for graph in graphs:
             keys: DefaultDict[str, List[CGMLKeyNode]] = (
                 self._get_available_keys(cgml)
@@ -413,7 +412,7 @@ class CGMLParser:
                 standard_version=standard_version,
             )
         self.elements.keys = keys
-        self.elements.format = format_str
+        self.elements.format = format
         return self.elements
 
     def _get_state_machine_name(self, graph: CGMLGraph) -> str | None:
@@ -560,8 +559,8 @@ class CGMLParser:
                     new_state.unknown_datanodes.append(data_node)
         if is_note and note_type is not None:
             bounds: Optional[Rectangle | Point] = new_state.bounds
-            x = 0.0
-            y = 0.0
+            x = 0
+            y = 0
             if bounds is None:
                 if note_type == 'informal':
                     raise CGMLParserException('No position for note!')
