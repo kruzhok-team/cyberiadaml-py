@@ -121,13 +121,9 @@ class CGMLParser:
                 data_list = []
             elif not isinstance(data_list, list):
                 data_list = [data_list]
-            # Ищем узел с ключом 'dName'
-            dname_n = next(
-                (item for item in data_list if item.key == 'dName'),
-                None
-                )
-            dname_value = dname_n.content if dname_n else None
-            if dname_value == 'CGML_COMPONENT':
+            # Проверяем наличие dStateMachine
+            has_state_machine = any(item.key == 'dStateMachine' for item in data_list)
+            if has_state_machine:
                 state_machines.append(graph)
             else:
                 functions.append(graph)
@@ -273,14 +269,17 @@ class CGMLParser:
 
         split_result = self._split_graph(graphs)
         func_graphs = split_result['functions']
+        func_ids = {g.id for g in func_graphs}
 
         self.elements.functions = {}
         for func_graph in func_graphs:
             func = self.parse_func_from_graph(func_graph)
             self.elements.functions[func.id] = func
-
+        keys: DefaultDict[str, List[CGMLKeyNode]] = defaultdict(list)
         format: str = self._get_format(cgml)
         for graph in graphs:
+            if graph.id in func_ids:
+                continue
             keys: DefaultDict[str, List[CGMLKeyNode]] = (
                 self._get_available_keys(cgml)
             )
