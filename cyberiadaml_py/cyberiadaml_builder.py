@@ -300,9 +300,9 @@ class CGMLBuilder:
             'dGeometry', None, None, CGMLPointNode(point.x, point.y))
 
     def _get_state_nodes(self,
-                       states: Dict[str, CGMLState]) -> Dict[str, CGMLNode]:
+                         states: Dict[str, CGMLState]) -> Dict[str, CGMLNode]:
         def _get_cgml_node(nodes: Dict[str, CGMLNode],
-                            state: CGMLState, stateId: str) -> CGMLNode:
+                           state: CGMLState, stateId: str) -> CGMLNode:
             if nodes.get(stateId) is not None:
                 return nodes[stateId]
             else:
