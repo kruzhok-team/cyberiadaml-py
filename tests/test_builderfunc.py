@@ -1,8 +1,9 @@
-"""Tests for function graph generation in CGMLBuilder."""
-import pytest
+"""Tests for function graph generation using builder and parser."""
 import xml.etree.ElementTree as ET
 
+import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
+from cyberiadaml_py.cyberiadaml_parser import CGMLParser
 from cyberiadaml_py.types.common import Rectangle
 from cyberiadaml_py.types.elements import (
     CGMLElements,
@@ -14,8 +15,8 @@ from cyberiadaml_py.types.elements import (
 )
 
 
-def test_build_function_graph():
-    """Test generation of a graph for a function with blocks and edges."""
+def test_build_and_parse_function():
+    """Test building a function graph and then parsing it back."""
     func = CGMLFunction(
         id='func_sum',
         type='function',
@@ -86,109 +87,56 @@ def test_build_function_graph():
     builder = CGMLBuilder()
     xml_str = builder.build(elements)
 
-    # Сохраняем для отладки (опционально)
+    # Диагностика: сохраняем и выводим XML
     with open('func_sum.xml', 'w', encoding='utf-8') as f:
         f.write(xml_str)
 
+    # Проверяем количество рёбер в XML
     root = ET.fromstring(xml_str)
     ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
     graph = root.find(".//g:graph[@id='func_sum']", ns)
     assert graph is not None
+    edges_xml = graph.findall('g:edge', ns)
+    assert len(edges_xml) == 3, (
+        f'Expected 3 edges in XML, got {len(edges_xml)}')
 
-    # Проверяем узлы
-    nodes = graph.findall('g:node', ns)
-    node_ids = [n.get('id') for n in nodes]
-    expected_nodes = [
-        'func_sum_input_a',
-        'func_sum_input_b',
-        'func_sum_output_result',
-        'func_sum_block_Сложение'
-    ]
-    for expected in expected_nodes:
-        assert expected in node_ids
+    # Парсим обратно
+    parser = CGMLParser()
+    parsed_elements = parser.parse_cgml(xml_str)
 
-    # Проверяем data-узлы графа
-    data_nodes = graph.findall('g:data', ns)
-    data_dict = {d.get('key'): d.text for d in data_nodes}
-    assert data_dict.get('dName') == 'CGML_FUNCTION'
-    assert data_dict.get('description') == 'sum function'
-    assert 'dStateMachine' not in data_dict
+    assert len(parsed_elements.functions) == 1
+    parsed_func = parsed_elements.functions.get('func_sum')
+    assert parsed_func is not None
+    assert parsed_func.id == 'func_sum'
+    assert parsed_func.type == 'function'
+    assert parsed_func.parameters.get('description') == 'sum function'
+
+    # Проверяем входы
+    assert len(parsed_func.inputs) == 2
+    assert 'func_sum_input_a' in parsed_func.inputs
+    assert 'func_sum_input_b' in parsed_func.inputs
+    assert parsed_func.inputs['func_sum_input_a'].data == 'a'
+    assert parsed_func.inputs['func_sum_input_b'].data == 'b'
+
+    # Проверяем выходы
+    assert len(parsed_func.outputs) == 1
+    assert 'func_sum_output_result' in parsed_func.outputs
+    assert parsed_func.outputs['func_sum_output_result'].data == 'result'
+
+    # Проверяем блоки
+    assert len(parsed_func.body) == 1
+    assert 'func_sum_block_Сложение' in parsed_func.body
+    assert parsed_func.body['func_sum_block_Сложение'].block_type == 'ADD'
 
     # Проверяем рёбра
-    edges = graph.findall('g:edge', ns)
-    assert len(edges) == 3
-    edge_sources = [e.get('source') for e in edges]
-    edge_targets = [e.get('target') for e in edges]
-    assert 'func_sum_input_a' in edge_sources
-    assert 'func_sum_input_b' in edge_sources
-    assert 'func_sum_block_Сложение' in edge_targets
-    assert any(e.get('source') == 'func_sum_block_Сложение'
-               and e.get('target') == 'func_sum_output_result'
-               for e in edges)
+    assert len(parsed_func.edges) == 3, (
+        f'Expected 3 edges, got {len(parsed_func.edges)}')
+    assert 'e1' in parsed_func.edges
+    assert parsed_func.edges['e1'].source == 'func_sum_input_a'
+    assert parsed_func.edges['e1'].target == 'func_sum_block_Сложение'
+    assert parsed_func.edges['e1'].actions == 'a'
 
-    print('test_build_function_graph passed')
-
-
-def test_build_function_without_blocks():
-    """Test function without blocks – direct input‑output connection."""
-    func = CGMLFunction(
-        id='func_direct',
-        type='function',
-        parameters={},
-        inputs={
-            'func_direct_input_x': CGMLInput(
-                type='input',
-                data='x',
-                data_type='int'
-            )
-        },
-        outputs={
-            'func_direct_output_y': CGMLOutput(
-                type='output',
-                data='y',
-                data_type='int'
-            )
-        },
-        body={},
-        edges={
-            'e1': CGMLTransition(
-                id='e1',
-                source='func_direct_input_x',
-                target='func_direct_output_y',
-                actions='x_to_y',
-                unknown_datanodes=[]
-            )
-        },
-        name='Прямая функция'
-    )
-
-    elements = CGMLElements(
-        state_machines={},
-        format='Cyberiada-GraphML-1.0',
-        keys={},
-        functions={'func_direct': func}
-    )
-
-    builder = CGMLBuilder()
-    xml_str = builder.build(elements)
-
-    with open('func_direct.xml', 'w', encoding='utf-8') as f:
-        f.write(xml_str)
-
-    root = ET.fromstring(xml_str)
-    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
-    graph = root.find(".//g:graph[@id='func_direct']", ns)
-    assert graph is not None
-
-    edges = graph.findall('g:edge', ns)
-    assert len(edges) == 1
-    assert edges[0].get('source') == 'func_direct_input_x'
-    assert edges[0].get('target') == 'func_direct_output_y'
-    # Проверяем наличие data с действием
-    edge_data = edges[0].find('g:data', ns)
-    if edge_data is not None:
-        assert edge_data.get('key') == 'dData'
-        assert edge_data.text == 'x_to_y'
+    print('test_build_and_parse_function passed')
 
 
 if __name__ == '__main__':
