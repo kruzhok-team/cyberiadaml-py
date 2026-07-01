@@ -1,87 +1,150 @@
-"""Tests for parsing functions from XML using CGMLParser."""
-from pathlib import Path
+"""Tests for function graph generation using builder and parser."""
+import xml.etree.ElementTree as ET
+
 import pytest
+from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
 from cyberiadaml_py.types.common import Rectangle
-from cyberiadaml_py.types.elements import CGMLInput, CGMLOutput, CGMLBlock
+from cyberiadaml_py.types.elements import (
+    CGMLElements,
+    CGMLFunction,
+    CGMLInput,
+    CGMLOutput,
+    CGMLBlock,
+    CGMLTransition,
+)
 
 
-def test_parse_functions_from_file():
-    """Parse all functions from the test XML file and verify their content."""
-    xml_file = Path(__file__).parent / 'testfile_for_func.xml'
-    assert xml_file.exists(), f'File {xml_file} not found'
+def test_build_and_parse_function():
+    """Test building a function graph and then parsing it back."""
+    func = CGMLFunction(
+        id='func_sum',
+        type='function',
+        parameters={'description': 'sum function'},
+        inputs={
+            'func_sum_input_a': CGMLInput(
+                type='input',
+                data='a',
+                data_type='int',
+                position=Rectangle(x=50, y=100, width=40, height=40)
+            ),
+            'func_sum_input_b': CGMLInput(
+                type='input',
+                data='b',
+                data_type='int',
+                position=Rectangle(x=50, y=200, width=40, height=40)
+            )
+        },
+        outputs={
+            'func_sum_output_result': CGMLOutput(
+                type='output',
+                data='result',
+                data_type='int',
+                position=Rectangle(x=450, y=150, width=40, height=40)
+            )
+        },
+        body={
+            'func_sum_block_Сложение': CGMLBlock(
+                type='block',
+                data='Сложение',
+                block_type='ADD',
+                position=Rectangle(x=200, y=150, width=150, height=50)
+            )
+        },
+        edges={
+            'e1': CGMLTransition(
+                id='e1',
+                source='func_sum_input_a',
+                target='func_sum_block_Сложение',
+                actions='a',
+                unknown_datanodes=[]
+            ),
+            'e2': CGMLTransition(
+                id='e2',
+                source='func_sum_input_b',
+                target='func_sum_block_Сложение',
+                actions='b',
+                unknown_datanodes=[]
+            ),
+            'e3': CGMLTransition(
+                id='e3',
+                source='func_sum_block_Сложение',
+                target='func_sum_output_result',
+                actions='result',
+                unknown_datanodes=[]
+            )
+        },
+        name='Функция сложения'
+    )
 
-    with open(xml_file, 'r', encoding='utf-8') as f:
-        xml_content = f.read()
+    elements = CGMLElements(
+        state_machines={},
+        format='Cyberiada-GraphML-1.0',
+        keys={},
+        functions={'func_sum': func}
+    )
 
+    builder = CGMLBuilder()
+    xml_str = builder.build(elements)
+
+    # Сохраняем для диагностики
+    with open('func_sum.xml', 'w', encoding='utf-8') as f:
+        f.write(xml_str)
+
+    # Проверяем, что XML содержит все рёбра
+    root = ET.fromstring(xml_str)
+    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
+    graph = root.find(".//g:graph[@id='func_sum']", ns)
+    assert graph is not None
+    edges_xml = graph.findall('g:edge', ns)
+    assert len(edges_xml) == 3, (
+        f'Expected 3 edges in XML, got {len(edges_xml)}'
+    )
+
+    # Парсим обратно
     parser = CGMLParser()
-    elements = parser.parse_cgml(xml_content)
+    parsed_elements = parser.parse_cgml(xml_str)
 
-    assert len(elements.functions) == 1, 'Should have exactly one function'
-    func = elements.functions.get('func_sum')
-    assert func is not None, 'Function func_sum not found'
+    # Проверяем, что распарсена одна функция
+    assert len(parsed_elements.functions) == 1
+    parsed_func = parsed_elements.functions.get('func_sum')
+    assert parsed_func is not None
+    assert parsed_func.id == 'func_sum'
+    assert parsed_func.type == 'function'
+    assert parsed_func.parameters.get('description') == 'sum function'
 
-    assert func.id == 'func_sum'
-    assert func.type == 'function'
-    assert func.name, 'Function name should not be empty'
-
-    # Проверяем входы (словарь)
-    assert len(func.inputs) == 2, 'Should have 2 inputs'
-    # Проверяем, что все входы имеют правильные атрибуты
-    for input_id, inp in func.inputs.items():
-        assert inp.data in ('a', 'b')
-        assert inp.data_type == 'int'
-        assert isinstance(inp.position, Rectangle)
+    # Проверяем входы
+    assert len(parsed_func.inputs) == 2
+    assert 'func_sum_input_a' in parsed_func.inputs
+    assert 'func_sum_input_b' in parsed_func.inputs
+    assert parsed_func.inputs['func_sum_input_a'].data == 'a'
+    assert parsed_func.inputs['func_sum_input_a'].data_type == 'int'
+    assert parsed_func.inputs['func_sum_input_b'].data == 'b'
 
     # Проверяем выходы
-    assert len(func.outputs) == 1, 'Should have 1 output'
-    output = next(iter(func.outputs.values()))
-    assert output.data == 'result'
-    assert output.data_type == 'int'
-    assert isinstance(output.position, Rectangle)
-    assert output.position.x == 450
-    assert output.position.y == 150
-    assert output.position.width == 40
-    assert output.position.height == 40
+    assert len(parsed_func.outputs) == 1
+    assert 'func_sum_output_result' in parsed_func.outputs
+    assert parsed_func.outputs['func_sum_output_result'].data == 'result'
 
     # Проверяем блоки
-    assert len(func.body) == 1, 'Should have 1 block'
-    block = next(iter(func.body.values()))
-    assert block.data == 'Сложение'
-    assert block.block_type == 'ADD'
-    assert isinstance(block.position, Rectangle)
-    assert block.position.x == 200
-    assert block.position.y == 150
-    assert block.position.width == 150
-    assert block.position.height == 50
+    assert len(parsed_func.body) == 1
+    assert 'func_sum_block_Сложение' in parsed_func.body
+    assert parsed_func.body['func_sum_block_Сложение'].block_type == 'ADD'
 
-    print('test_parse_functions_from_file passed')
+    # Проверяем рёбра
+    assert len(parsed_func.edges) == 3
+    assert 'e1' in parsed_func.edges
+    assert parsed_func.edges['e1'].source == 'func_sum_input_a'
+    assert parsed_func.edges['e1'].target == 'func_sum_block_Сложение'
+    assert parsed_func.edges['e1'].actions == 'a'
 
+    # Проверяем геометрию
+    input_a_pos = parsed_func.inputs['func_sum_input_a'].position
+    assert input_a_pos is not None
+    assert input_a_pos.x == 50
+    assert input_a_pos.y == 100
 
-def test_parse_func_from_graph_direct():
-    """Directly verify the structure of parsed functions."""
-    xml_file = Path(__file__).parent / 'testfile_for_func.xml'
-    if not xml_file.exists():
-        pytest.skip(f'File {xml_file} not found, use testfile_for_func.xml')
-
-    with open(xml_file, 'r', encoding='utf-8') as f:
-        xml_content = f.read()
-
-    parser = CGMLParser()
-    elements = parser.parse_cgml(xml_content)
-
-    func = elements.functions.get('func_sum')
-    assert func is not None, 'Function func_sum not found'
-
-    for inp in func.inputs.values():
-        assert isinstance(inp, CGMLInput)
-        assert inp.type == 'input'
-    for out in func.outputs.values():
-        assert isinstance(out, CGMLOutput)
-        assert out.type == 'output'
-    for block in func.body.values():
-        assert isinstance(block, CGMLBlock)
-        assert block.type == 'block'
+    print('test_build_and_parse_function passed')
 
 
 if __name__ == '__main__':

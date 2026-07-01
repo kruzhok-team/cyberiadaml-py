@@ -1,10 +1,10 @@
-"""Tests for function graph generation using builder and parser."""
+"""Tests for CGMLBuilder with both function and state machine."""
 import xml.etree.ElementTree as ET
 
 import pytest
 from cyberiadaml_py.cyberiadaml_builder import CGMLBuilder
 from cyberiadaml_py.cyberiadaml_parser import CGMLParser
-from cyberiadaml_py.types.common import Rectangle
+from cyberiadaml_py.types.common import Point, Rectangle
 from cyberiadaml_py.types.elements import (
     CGMLElements,
     CGMLFunction,
@@ -12,11 +12,16 @@ from cyberiadaml_py.types.elements import (
     CGMLOutput,
     CGMLBlock,
     CGMLTransition,
+    CGMLState,
+    CGMLStateMachine,
+    CGMLMeta,
+    CGMLInitialState,
 )
 
 
-def test_build_and_parse_function():
-    """Test building a function graph and then parsing it back."""
+def test_build_with_function_and_state_machine():
+    """Test builder generates XML with both a function and a state machine."""
+    # 1. Создаём функцию
     func = CGMLFunction(
         id='func_sum',
         type='function',
@@ -77,66 +82,109 @@ def test_build_and_parse_function():
         name='Функция сложения'
     )
 
+    # 2. Создаём state machine
+    sm_id = 'sm_test'
+    meta = CGMLMeta(id='meta1', values={
+        'platform': 'test_platform',
+        'standardVersion': '1.0'
+    })
+    # Состояния
+    states = {
+        'state1': CGMLState(
+            name='State 1',
+            actions='entry/do_something();',
+            unknown_datanodes=[],
+            bounds=Rectangle(x=100, y=100, width=200, height=100),
+            color='#FFFFFF'
+        )
+    }
+    # Начальное состояние (вершина)
+    initial_states = {
+        'init1': CGMLInitialState(
+            type='initial',
+            position=Point(x=50, y=50)
+        )
+    }
+    # Переходы
+    transitions = {
+        'edge1': CGMLTransition(
+            id='edge1',
+            source='init1',
+            target='state1',
+            actions='',
+            unknown_datanodes=[],
+            position=[Point(x=75, y=75), Point(x=100, y=75)]
+        )
+    }
+
+    sm = CGMLStateMachine(
+        platform='test_platform',
+        meta=meta,
+        standard_version='1.0',
+        states=states,
+        transitions=transitions,
+        components={},
+        notes={},
+        initial_states=initial_states,
+        finals={},
+        choices={},
+        terminates={},
+        shallow_history={},
+        unknown_vertexes={},
+        name='Test State Machine'
+    )
+
+    # 3. Собираем CGMLElements
     elements = CGMLElements(
-        state_machines={},
+        state_machines={sm_id: sm},
         format='Cyberiada-GraphML-1.0',
-        keys={},
+        keys={},  # ключи могут быть пустыми, билдер добавит стандартные
         functions={'func_sum': func}
     )
 
+    # 4. Билдер создаёт XML
     builder = CGMLBuilder()
     xml_str = builder.build(elements)
 
-    # Диагностика: сохраняем и выводим XML
-    with open('func_sum.xml', 'w', encoding='utf-8') as f:
+    # Сохраняем для диагностики
+    with open('test_both.xml', 'w', encoding='utf-8') as f:
         f.write(xml_str)
 
-    # Проверяем количество рёбер в XML
-    root = ET.fromstring(xml_str)
-    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
-    graph = root.find(".//g:graph[@id='func_sum']", ns)
-    assert graph is not None
-    edges_xml = graph.findall('g:edge', ns)
-    assert len(edges_xml) == 3, (
-        f'Expected 3 edges in XML, got {len(edges_xml)}')
-
-    # Парсим обратно
+    # 5. Парсим XML обратно
     parser = CGMLParser()
     parsed_elements = parser.parse_cgml(xml_str)
 
+    # 6. Проверяем, что обе сущности присутствуют
+    # Функция
     assert len(parsed_elements.functions) == 1
     parsed_func = parsed_elements.functions.get('func_sum')
     assert parsed_func is not None
     assert parsed_func.id == 'func_sum'
-    assert parsed_func.type == 'function'
-    assert parsed_func.parameters.get('description') == 'sum function'
-
-    # Проверяем входы
     assert len(parsed_func.inputs) == 2
-    assert 'func_sum_input_a' in parsed_func.inputs
-    assert 'func_sum_input_b' in parsed_func.inputs
-    assert parsed_func.inputs['func_sum_input_a'].data == 'a'
-    assert parsed_func.inputs['func_sum_input_b'].data == 'b'
-
-    # Проверяем выходы
     assert len(parsed_func.outputs) == 1
-    assert 'func_sum_output_result' in parsed_func.outputs
-    assert parsed_func.outputs['func_sum_output_result'].data == 'result'
-
-    # Проверяем блоки
     assert len(parsed_func.body) == 1
-    assert 'func_sum_block_Сложение' in parsed_func.body
-    assert parsed_func.body['func_sum_block_Сложение'].block_type == 'ADD'
+    assert len(parsed_func.edges) == 3
 
-    # Проверяем рёбра
-    assert len(parsed_func.edges) == 3, (
-        f'Expected 3 edges, got {len(parsed_func.edges)}')
-    assert 'e1' in parsed_func.edges
-    assert parsed_func.edges['e1'].source == 'func_sum_input_a'
-    assert parsed_func.edges['e1'].target == 'func_sum_block_Сложение'
-    assert parsed_func.edges['e1'].actions == 'a'
+    # State machine
+    assert len(parsed_elements.state_machines) == 1
+    parsed_sm = parsed_elements.state_machines.get(sm_id)
+    assert parsed_sm is not None
+    assert len(parsed_sm.states) == 1
+    assert 'state1' in parsed_sm.states
+    assert len(parsed_sm.initial_states) == 1
+    assert 'init1' in parsed_sm.initial_states
+    assert len(parsed_sm.transitions) == 1
+    assert 'edge1' in parsed_sm.transitions
+    assert parsed_sm.transitions['edge1'].source == 'init1'
+    assert parsed_sm.transitions['edge1'].target == 'state1'
 
-    print('test_build_and_parse_function passed')
+    # Проверяем, что в XML есть два графа с правильными id
+    root = ET.fromstring(xml_str)
+    ns = {'g': 'http://graphml.graphdrawing.org/xmlns'}
+    graphs = root.findall('g:graph', ns)
+    graph_ids = [g.get('id') for g in graphs]
+    assert 'func_sum' in graph_ids
+    assert sm_id in graph_ids
 
 
 if __name__ == '__main__':
