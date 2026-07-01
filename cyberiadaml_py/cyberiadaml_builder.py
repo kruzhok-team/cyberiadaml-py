@@ -76,7 +76,7 @@ class CGMLBuilder:
         raw_graphs: List[CGMLGraph] = []
         for sm_id in state_machines:
             sm = state_machines[sm_id]
-            cgml_states: Dict[str, CGMLNode] = self._get_cgml_node(
+            cgml_states: Dict[str, CGMLNode] = self._get_state_nodes(
                 sm.states)
             initials: List[CGMLNode] = self._get_vertex_nodes(
                 sm.initial_states, 'initial')
@@ -299,10 +299,10 @@ class CGMLBuilder:
         return CGMLDataNode(
             'dGeometry', None, None, CGMLPointNode(point.x, point.y))
 
-    def _get_cgml_node(self,
+    def _get_state_nodes(self,
                        states: Dict[str, CGMLState]) -> Dict[str, CGMLNode]:
-        def _getCGMLNode(nodes: Dict[str, CGMLNode],
-                         state: CGMLState, stateId: str) -> CGMLNode:
+        def _get_cgml_node(nodes: Dict[str, CGMLNode],
+                            state: CGMLState, stateId: str) -> CGMLNode:
             if nodes.get(stateId) is not None:
                 return nodes[stateId]
             else:
@@ -323,10 +323,10 @@ class CGMLBuilder:
         nodes: Dict[str, CGMLNode] = {}
         for stateId in list(states.keys()):
             state: CGMLState = states[stateId]
-            node: CGMLNode = _getCGMLNode(nodes, state, stateId)
+            node: CGMLNode = _get_cgml_node(nodes, state, stateId)
             if state.parent is not None:
                 parentState: CGMLState = states[state.parent]
-                parent: CGMLNode = _getCGMLNode(
+                parent: CGMLNode = _get_cgml_node(
                     nodes, parentState, state.parent)
                 if parent.graph is None:
                     parent.graph = CGMLGraph(
