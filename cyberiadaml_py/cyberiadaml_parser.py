@@ -122,7 +122,10 @@ class CGMLParser:
             elif not isinstance(data_list, list):
                 data_list = [data_list]
             # Проверяем наличие dStateMachine
-            has_state_machine = any(item.key == 'dStateMachine' for item in data_list)
+            has_state_machine = any(
+                item.key == 'dStateMachine'
+                for item in data_list
+            )
             if has_state_machine:
                 state_machines.append(graph)
             else:
