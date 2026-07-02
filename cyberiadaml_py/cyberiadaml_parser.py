@@ -169,64 +169,63 @@ class CGMLParser:
                     break
             edges[edge.id] = transition
 
-        if func_graph.node:
-            nodes = to_list(func_graph.node)
-            for node in nodes:
-                node_data = to_list(node.data) if node.data else []
+        nodes = to_list(func_graph.node)
+        for node in nodes:
+            node_data = to_list(node.data) if node.data else []
 
-                # Node - data processing block
-                node_type = None
-                node_name = node.id
-                node_data_type = None
-                node_block = None
-                node_position = None
+            # Node - data processing block
+            node_type = None
+            node_name = node.id
+            node_data_type = None
+            node_block = None
+            node_position = None
 
-                for data_item in node_data:
-                    if data_item.key == 'dVertex':
-                        node_type = data_item.content
-                    elif data_item.key == 'dName':
-                        node_name = data_item.content or node.id
-                    elif data_item.key == 'dData' and data_item.content:
-                        if node_type == 'block':
-                            node_block = data_item.content
-                        else:
-                            node_data_type = data_item.content
-                    elif data_item.key == 'dGeometry':
-                        if data_item.rect is not None:
-                            node_position = Rectangle(
-                                x=data_item.rect.x,
-                                y=data_item.rect.y,
-                                width=data_item.rect.width,
-                                height=data_item.rect.height
-                            )
+            for data_item in node_data:
+                if data_item.key == 'dVertex':
+                    node_type = data_item.content
+                elif data_item.key == 'dName':
+                    node_name = data_item.content or node.id
+                elif data_item.key == 'dData' and data_item.content:
+                    if node_type == 'block':
+                        node_block = data_item.content
+                    else:
+                        node_data_type = data_item.content
+                elif data_item.key == 'dGeometry':
+                    if data_item.rect is not None:
+                        node_position = Rectangle(
+                            x=data_item.rect.x,
+                            y=data_item.rect.y,
+                            width=data_item.rect.width,
+                            height=data_item.rect.height
+                        )
 
-                if node_type == 'input':
-                    inputs[node.id] = CGMLInput(
-                        id=node.id,
-                        type='input',
-                        data=node_name,
-                        position=node_position,
-                        parent=None,
-                        data_type=node_data_type
-                    )
-                elif node_type == 'output':
-                    outputs[node.id] = CGMLOutput(
-                        id=node.id,
-                        type='output',
-                        data=node_name,
-                        position=node_position,
-                        parent=None,
-                        data_type=node_data_type
-                    )
-                elif node_type == 'block':
-                    blocks[node.id] = CGMLBlock(
-                        id=node.id,
-                        type='block',
-                        data=node_name,
-                        position=node_position,
-                        parent=None,
-                        block_type=node_block
-                    )
+            if node_type == 'input':
+                inputs[node.id] = CGMLInput(
+                    id=node.id,
+                    type='input',
+                    data=node_name,
+                    position=node_position,
+                    parent=None,
+                    data_type=node_data_type
+                )
+            elif node_type == 'output':
+                outputs[node.id] = CGMLOutput(
+                    id=node.id,
+                    type='output',
+                    data=node_name,
+                    position=node_position,
+                    parent=None,
+                    data_type=node_data_type
+                )
+            elif node_type == 'block':
+                blocks[node.id] = CGMLBlock(
+                    id=node.id,
+                    type='block',
+                    data=node_name,
+                    position=node_position,
+                    parent=None,
+                    block_type=node_block
+                )
 
         name = func_data.get('dName') or func_graph.id
 
