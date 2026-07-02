@@ -203,7 +203,6 @@ class CGMLParser:
 
             if node_type == 'input':
                 inputs[node.id] = CGMLInput(
-                    id=node.id,
                     type='input',
                     data=node_name,
                     position=node_position,
@@ -212,7 +211,6 @@ class CGMLParser:
                 )
             elif node_type == 'output':
                 outputs[node.id] = CGMLOutput(
-                    id=node.id,
                     type='output',
                     data=node_name,
                     position=node_position,
@@ -221,7 +219,6 @@ class CGMLParser:
                 )
             elif node_type == 'block':
                 blocks[node.id] = CGMLBlock(
-                    id=node.id,
                     type='block',
                     data=node_name,
                     position=node_position,
@@ -284,9 +281,7 @@ class CGMLParser:
         for graph in graphs:
             if graph.id in func_ids:
                 continue
-            keys: DefaultDict[str, List[CGMLKeyNode]] = (
-                self._get_available_keys(cgml)
-            )
+            keys = self._get_available_keys(cgml)
             platform = ''
             standard_version = ''
             meta: CGMLMeta = CGMLMeta(
@@ -566,8 +561,8 @@ class CGMLParser:
                     new_state.unknown_datanodes.append(data_node)
         if is_note and note_type is not None:
             bounds: Optional[Rectangle | Point] = new_state.bounds
-            x = 0
-            y = 0
+            x = 0.
+            y = 0.
             if bounds is None:
                 if note_type == 'informal':
                     raise CGMLParserException('No position for note!')
