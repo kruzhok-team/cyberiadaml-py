@@ -130,6 +130,7 @@ def test_build_with_function_and_state_machine():
         choices={},
         terminates={},
         shallow_history={},
+        deep_history={},
         unknown_vertexes={},
         name='Test State Machine'
     )
