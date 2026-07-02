@@ -21,7 +21,7 @@ except ImportError:
 AvailableKeys: TypeAlias = DefaultDict[str, List[CGMLKeyNode]]
 
 CGMLVertexType = Literal['choice', 'initial',
-                         'final', 'terminate', 'shallowHistory']
+                         'final', 'terminate', 'shallowHistory', 'deepHistory']
 CGMLNoteType = Literal['formal', 'informal']
 
 
@@ -122,6 +122,18 @@ class CGMLShallowHistory(CGMLBaseVertex):
 
     ShallowHistory is <node>, that contains data node with key 'dVertex'\
         and content 'shallowHistory'.
+    """
+
+    ...
+
+
+@dataclass
+class CGMLDeepHistory(CGMLBaseVertex):
+    """
+    Data class with information about deep history node (pseudo node).
+
+    DeepHistory is <node>, that contains data node with key 'dVertex'\
+        and content 'deepHistory'.
     """
 
     ...
@@ -259,6 +271,7 @@ class CGMLStateMachine:
     choices: Dict[str, CGMLChoice]
     terminates: Dict[str, CGMLTerminate]
     shallow_history: Dict[str, CGMLShallowHistory]
+    deep_history: Dict[str, CGMLDeepHistory]
     unknown_vertexes: Dict[str, CGMLBaseVertex]
     name: Optional[str] = Field(default=None)
 
@@ -286,5 +299,6 @@ Vertex = (
     CGMLInitialState |
     CGMLTerminate |
     CGMLShallowHistory |
+    CGMLDeepHistory |
     CGMLBaseVertex
 )

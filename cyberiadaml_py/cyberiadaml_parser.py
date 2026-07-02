@@ -33,6 +33,7 @@ from cyberiadaml_py.types.elements import (
     CGMLMeta,
     CGMLNoteType,
     CGMLShallowHistory,
+    CGMLDeepHistory,
     CGMLStateMachine,
     CGMLTerminate,
     CGMLVertexType,
@@ -84,6 +85,7 @@ def create_empty_state_machine() -> CGMLStateMachine:
         components={},
         notes={},
         shallow_history={},
+        deep_history={},
         unknown_vertexes={}
     )
 
@@ -301,17 +303,20 @@ class CGMLParser:
             unknown_vertexes: Dict[str, CGMLBaseVertex] = {}
             components: Dict[str, CGMLComponent] = {}
             shallow_history: Dict[str, CGMLShallowHistory] = {}
+            deep_history: Dict[str, CGMLDeepHistory] = {}
             vertex_dicts: Dict[CGMLVertexType,
                                tuple[Dict[str, CGMLInitialState], type] |
                                tuple[Dict[str, CGMLFinal], type] |
                                tuple[Dict[str, CGMLChoice], type] |
                                tuple[Dict[str, CGMLTerminate], type] |
-                               tuple[Dict[str, CGMLShallowHistory], type]] = {
+                               tuple[Dict[str, CGMLShallowHistory], type] |
+                               tuple[Dict[str, CGMLDeepHistory], type]] = {
                 'initial': (initials, CGMLInitialState),
                 'choice': (choices, CGMLChoice),
                 'final': (finals, CGMLFinal),
                 'terminate': (terminates, CGMLTerminate),
-                'shallowHistory': (shallow_history, CGMLShallowHistory)
+                'shallowHistory': (shallow_history, CGMLShallowHistory),
+                'deepHistory': (deep_history, CGMLDeepHistory)
             }
             states = self._parse_graph_nodes(graph)
             transitions = self._parse_graph_edges(graph)
@@ -409,6 +414,7 @@ class CGMLParser:
                 name=self._get_state_machine_name(graph),
                 meta=meta,
                 shallow_history=shallow_history,
+                deep_history=deep_history,
                 platform=platform,
                 standard_version=standard_version,
             )
