@@ -8,7 +8,6 @@ def test_split_graph_components_and_functions():
     """Split a list with both state machine and function graphs."""
     parser = CGMLParser()
 
-    # Граф с dStateMachine -> state machine
     sm_graph = CGMLGraph(
         'state_machine_1',
         [
@@ -18,11 +17,10 @@ def test_split_graph_components_and_functions():
         'directed'
     )
 
-    # Граф без dStateMachine -> функция
     func_graph = CGMLGraph(
         'function_1',
         [
-            CGMLDataNode('dName', 'CGML_FUNCTION')
+            CGMLDataNode('dFunction')
         ],
         'directed'
     )
@@ -41,7 +39,6 @@ def test_split_graph_without_dname():
     """Graph without dName but with dStateMachine should be a state machine."""
     parser = CGMLParser()
 
-    # Граф без dName, но с dStateMachine
     graph = CGMLGraph(
         'no_dname_graph',
         [CGMLDataNode('dStateMachine', 'StateMachine')],
@@ -86,7 +83,7 @@ def test_split_graph_functions_only():
     func_graph = CGMLGraph(
         'func1',
         [
-            CGMLDataNode('dName', 'CGML_FUNCTION')
+            CGMLDataNode('dFunction')
         ],
         'directed'
     )
@@ -112,7 +109,7 @@ def test_split_graph_empty_list():
 
 
 def test_split_graph_mixed():
-    """Mixed graphs: some with dStateMachine, some without."""
+    """Mixed graphs: some with dStateMachine, some with dFunction."""
     parser = CGMLParser()
 
     graphs = [
@@ -127,20 +124,16 @@ def test_split_graph_mixed():
         CGMLGraph(
             'func1',
             [
-                CGMLDataNode('dName', 'CGML_FUNCTION')
+                CGMLDataNode('dFunction')
             ],
             'directed'
         ),
         CGMLGraph(
-            'unknown1',
+            'func2',
             [
+                CGMLDataNode('dFunction'),
                 CGMLDataNode('dName', 'SOMETHING_ELSE')
             ],
-            'directed'
-        ),
-        CGMLGraph(
-            'no_name1',
-            [],  # вообще без data
             'directed'
         ),
     ]
@@ -148,20 +141,20 @@ def test_split_graph_mixed():
     result = parser._split_graph(graphs)
 
     assert len(result['state_machines']) == 1
-    assert len(result['functions']) == 3
+    assert len(result['functions']) == 2
     assert result['state_machines'][0].id == 'sm1'
-    assert ([g.id for g in result['functions']] ==
-            ['func1', 'unknown1', 'no_name1'])
+    assert [g.id for g in result['functions']] == ['func1', 'func2']
+
+    print('test_split_graph_mixed passed')
 
 
 def test_split_graph_data_as_single_object():
-    """Data can be a single object."""
+    """Data can be a single object, with dFunction."""
     parser = CGMLParser()
 
-    # Только dName, без dStateMachine
     graph = CGMLGraph(
         'single_data_graph',
-        CGMLDataNode('dName', 'CGML_COMPONENT'),
+        CGMLDataNode('dFunction'),
         'directed'
     )
 
@@ -170,8 +163,6 @@ def test_split_graph_data_as_single_object():
     assert len(result['state_machines']) == 0
     assert len(result['functions']) == 1
     assert result['functions'][0].id == 'single_data_graph'
-
-    print('test_split_graph_data_as_single_object passed')
 
 
 if __name__ == '__main__':
