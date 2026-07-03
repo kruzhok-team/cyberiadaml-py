@@ -118,20 +118,22 @@ class CGMLParser:
         functions = []
         for graph in graphs:
             # Нормализуем data в список
-            data_list = graph.data
-            if data_list is None:
-                data_list = []
-            elif not isinstance(data_list, list):
-                data_list = [data_list]
+            data_list = to_list(graph.data)
             # Проверяем наличие dStateMachine
             has_state_machine = any(
                 item.key == 'dStateMachine'
                 for item in data_list
             )
+            has_function = any(
+                item.key == 'dFunction'
+                for item in data_list
+            )
             if has_state_machine:
                 state_machines.append(graph)
-            else:
+            elif has_function:
                 functions.append(graph)
+            else:
+                raise CGMLParserException('There is no clear key for parsing.')
 
         return {'state_machines': state_machines, 'functions': functions}
 
