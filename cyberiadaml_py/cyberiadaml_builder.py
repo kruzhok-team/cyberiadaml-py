@@ -60,6 +60,9 @@ class CGMLBuilder:
     def _get_state_machine_datanode(self) -> CGMLDataNode:
         return CGMLDataNode('dStateMachine')
 
+    def _get_function_datanode(self) -> CGMLDataNode:
+        return CGMLDataNode('dFunction')
+
     def _get_graph_data_nodes(self,
                               state_machine: CGMLStateMachine
                               ) -> List[CGMLDataNode]:
@@ -388,6 +391,7 @@ class CGMLBuilder:
     def _get_function_graph(self, func: CGMLFunction) -> Optional[CGMLGraph]:
         data_nodes: List[CGMLDataNode] = []
         edges: List[CGMLEdge] = []
+        data_nodes.append(self._get_function_datanode())
         data_nodes.append(CGMLDataNode('dName', 'CGML_FUNCTION'))
         for key, value in func.parameters.items():
             data_nodes.append(CGMLDataNode(key, value))
