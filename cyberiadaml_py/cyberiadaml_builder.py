@@ -1,5 +1,5 @@
 """Module implements building CyberiadaML schemes."""
-from typing import Dict, Iterable, List, Mapping
+from typing import Dict, Iterable, List, Mapping, Optional, Union
 from copy import deepcopy
 from itertools import chain
 
@@ -26,6 +26,7 @@ from cyberiadaml_py.types.elements import (
     AvailableKeys,
     CGMLComponent,
     CGMLElements,
+    CGMLFunction,
     CGMLNote,
     CGMLState,
     CGMLTransition,
@@ -53,10 +54,14 @@ class CGMLBuilder:
     """Contains functions to build CGML scheme."""
 
     def __init__(self) -> None:
+        """Initialize builder with an empty scheme."""
         self.scheme: CGML = create_empty_scheme()
 
     def _get_state_machine_datanode(self) -> CGMLDataNode:
         return CGMLDataNode('dStateMachine')
+
+    def _get_function_datanode(self) -> CGMLDataNode:
+        return CGMLDataNode('dFunction')
 
     def _get_graph_data_nodes(self,
                               state_machine: CGMLStateMachine
@@ -125,7 +130,8 @@ class CGMLBuilder:
                     'directed',
                     node=[self._get_meta_node(
                         sm.meta, sm.platform, sm.standard_version), *nodes],
-                    edge=edges)
+                    edge=edges
+                )
             )
 
         return raw_graphs
@@ -134,6 +140,8 @@ class CGMLBuilder:
         """Build CGML scheme from elements."""
         self.scheme = create_empty_scheme()
         graphs = self._get_graphs(elements.state_machines)
+        func_graphs = self._get_function_graphs(elements.functions)
+        graphs.extend(func_graphs)
         if len(graphs) == 0:
             raise CGMLBuilderException('No state machines to build!')
         self.scheme.graphml.graph = graphs
@@ -199,8 +207,7 @@ class CGMLBuilder:
             data.append(self._name_to_data('CGML_COMPONENT'))
             str_parameters = self._get_actions_string(
                 component.parameters | {'id': component.id,
-                                        'type': component.type
-                                        }
+                                        'type': component.type}
             )
             data.append(self._actions_to_data(str_parameters))
             node.data = data
@@ -267,7 +274,8 @@ class CGMLBuilder:
         meta_node: CGMLNode = CGMLNode(meta.id)
         data: List[CGMLDataNode] = []
         meta_parameters: str = self._get_actions_string(
-            meta.values | {
+            meta.values |
+            {
                 'platform': platform,
                 'standardVersion': standard_version
             }
@@ -305,8 +313,8 @@ class CGMLBuilder:
 
     def _get_state_nodes(self,
                          states: Dict[str, CGMLState]) -> Dict[str, CGMLNode]:
-        def _getCGMLNode(nodes: Dict[str, CGMLNode],
-                         state: CGMLState, stateId: str) -> CGMLNode:
+        def _get_cgml_node(nodes: Dict[str, CGMLNode],
+                           state: CGMLState, stateId: str) -> CGMLNode:
             if nodes.get(stateId) is not None:
                 return nodes[stateId]
             else:
@@ -327,10 +335,10 @@ class CGMLBuilder:
         nodes: Dict[str, CGMLNode] = {}
         for stateId in list(states.keys()):
             state: CGMLState = states[stateId]
-            node: CGMLNode = _getCGMLNode(nodes, state, stateId)
+            node: CGMLNode = _get_cgml_node(nodes, state, stateId)
             if state.parent is not None:
                 parentState: CGMLState = states[state.parent]
-                parent: CGMLNode = _getCGMLNode(
+                parent: CGMLNode = _get_cgml_node(
                     nodes, parentState, state.parent)
                 if parent.graph is None:
                     parent.graph = CGMLGraph(
@@ -374,9 +382,108 @@ class CGMLBuilder:
     def _get_format_node(self, format: str) -> CGMLDataNode:
         return CGMLDataNode('gFormat', format)
 
-    def _get_keys(self, awaialaibleKeys: AvailableKeys) -> List[CGMLKeyNode]:
+    def _get_keys(self, availableKeys: AvailableKeys) -> List[CGMLKeyNode]:
         keyNodes: List[CGMLKeyNode] = []
-        for key in list(awaialaibleKeys.keys()):
-            keyNodes.extend(awaialaibleKeys[key])
-
+        for key in list(availableKeys.keys()):
+            keyNodes.extend(availableKeys[key])
         return keyNodes
+
+    def _get_function_graph(self, func: CGMLFunction) -> Optional[CGMLGraph]:
+        data_nodes: List[CGMLDataNode] = []
+        edges: List[CGMLEdge] = []
+        data_nodes.append(self._get_function_datanode())
+        data_nodes.append(CGMLDataNode('dName', 'CGML_FUNCTION'))
+        for key, value in func.parameters.items():
+            data_nodes.append(CGMLDataNode(key, value))
+        nodes: List[CGMLNode] = []
+        # входы
+        input_ids = []
+        for input_id, inp in func.inputs.items():
+            input_ids.append(input_id)
+            node = self._create_fucntion_node(
+                input_id,
+                vertex_type='input',
+                name=inp.data,
+                data_type=inp.data_type,
+                position=inp.position
+            )
+            nodes.append(node)
+        # Выходы
+        output_ids = []
+        for output_id, out in func.outputs.items():
+            output_ids.append(output_id)
+            node = self._create_fucntion_node(
+                output_id,
+                vertex_type='output',
+                name=out.data,
+                data_type=out.data_type,
+                position=out.position
+            )
+            nodes.append(node)
+        # Блоки
+        block_ids = []
+        for block_id, block in func.body.items():
+            block_ids.append(block_id)
+            node = self._create_fucntion_node(
+                block_id,
+                vertex_type='block',
+                name=block.data,
+                block_type=block.block_type,
+                position=block.position
+            )
+            nodes.append(node)
+        for edge_id, transition in func.edges.items():
+            edge = CGMLEdge(
+                edge_id,
+                transition.source,
+                transition.target
+            )
+            # Добавляем data, если есть
+            if transition.actions:
+                edge.data = [CGMLDataNode('dData', transition.actions)]
+            elif transition.unknown_datanodes:
+                edge.data = transition.unknown_datanodes
+            edges.append(edge)
+
+        return CGMLGraph(
+            func.id,
+            data_nodes,
+            'directed',
+            node=nodes,
+            edge=edges
+        )
+
+    def _get_function_graphs(
+            self,
+            functions: Dict[str, CGMLFunction]
+    ) -> List[CGMLGraph]:
+        graphs: List[CGMLGraph] = []
+        for func_id, func in functions.items():
+            graph = self._get_function_graph(func)
+            if graph:
+                graphs.append(graph)
+        return graphs
+
+    def _create_fucntion_node(
+        self,
+        node_id: str,
+        vertex_type: str,
+        name: Optional[str] = None,
+        data_type: Optional[str] = None,
+        block_type: Optional[str] = None,
+        position: Optional[Union[Point, Rectangle]] = None
+    ) -> CGMLNode:
+        data: List[CGMLDataNode] = []
+        data.append(CGMLDataNode('dVertex', vertex_type))
+        if name is not None:
+            data.append(CGMLDataNode('dName', name))
+        if data_type is not None:
+            data.append(CGMLDataNode('dData', data_type))
+        if block_type is not None:
+            data.append(CGMLDataNode('dData', block_type))
+        if position is not None:
+            if isinstance(position, Point):
+                data.append(self._point_to_data(position))
+            elif isinstance(position, Rectangle):
+                data.append(self._bounds_to_data(position))
+        return CGMLNode(node_id, data=data)
